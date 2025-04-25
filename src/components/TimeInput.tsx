@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import VoiceInputService from '@/services/VoiceInput';
 import { parseTimeQuery } from '@/services/ChatParser';
-import GeminiService from '@/services/GeminiService';
+import LlamaService from '@/services/LlamaService';
 
 interface TimeInputProps {
   onQuerySubmit: (query: string) => void;
@@ -16,7 +17,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
   const [isListening, setIsListening] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [placeholder, setPlaceholder] = useState('Enter your time zone question...');
+  const [placeholder, setPlaceholder] = useState('Enter any city, state, country or timezone...');
   
   // Focus input on mount
   useEffect(() => {
@@ -45,7 +46,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     if (!query.trim()) {
       toast({
         title: "Empty Query",
-        description: "Please enter a time zone question",
+        description: "Please enter a location or time zone question",
         variant: "destructive",
       });
       return;
@@ -54,14 +55,26 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     setIsValidating(true);
 
     try {
-      const result = GeminiService.hasApiKey() 
-        ? await GeminiService.verifyTimeQuery(query)
+      const result = LlamaService.hasApiKey() 
+        ? await LlamaService.verifyTimeQuery(query)
         : { isValid: parseTimeQuery(query).isValid };
       
-      if (!result.isValid) {
+      if (!result.isValid && LlamaService.hasApiKey()) {
+        // Let's try once more by reformulating as a time query
+        const enhancedQuery = `What time is it in ${query}?`;
+        const enhancedResult = await LlamaService.verifyTimeQuery(enhancedQuery);
+        
+        if (enhancedResult.isValid) {
+          // Pass the enhanced query to parent component
+          onQuerySubmit(enhancedQuery);
+          setQuery('');
+          setIsValidating(false);
+          return;
+        }
+
         toast({
           title: "Invalid Query",
-          description: result.suggestions || "Please specify a time and at least one timezone or city",
+          description: result.suggestions || "Please specify a city, country or timezone",
           variant: "destructive",
         });
         setIsValidating(false);
@@ -93,7 +106,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
   const stopVoiceInput = () => {
     VoiceInputService.stopListening();
     setIsListening(false);
-    setPlaceholder('Enter your time zone question...');
+    setPlaceholder('Enter any city, state, country or timezone...');
   };
 
   const toggleVoiceInput = () => {
@@ -131,10 +144,10 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             }
             
             // Only use AI validation if basic validation fails
-            if (GeminiService.hasApiKey()) {
+            if (LlamaService.hasApiKey()) {
               try {
                 setIsValidating(true);
-                const result = await GeminiService.verifyTimeQuery(transcript);
+                const result = await LlamaService.verifyTimeQuery(transcript);
                 
                 if (result.isValid) {
                   // Auto-submit if query is valid
@@ -167,7 +180,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             variant: "destructive",
           });
           setIsListening(false);
-          setPlaceholder('Enter your time zone question...');
+          setPlaceholder('Enter any city, state, country or timezone...');
         }
       );
     }
@@ -202,12 +215,12 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
           className="neo-raised bg-neo-my-accent text-white hover:bg-neo-my-accent/80"
           disabled={isValidating}
         >
-          {isValidating ? 'Verifying...' : 'Convert'}
+          {isValidating ? 'Analyzing...' : 'Convert'}
         </Button>
       </div>
       
       <div className="mt-2 text-xs text-gray-400">
-        Try: "What's 3pm EST in Tokyo?" or "5pm in Berlin" or "Convert 9am London to New York"
+        Try: "New York", "Paris time", "What's the time in Tokyo?", "3pm EST in Berlin"
       </div>
     </form>
   );

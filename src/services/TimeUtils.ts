@@ -1,3 +1,4 @@
+
 import { format, formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { addHours, differenceInHours } from 'date-fns';
 
@@ -47,6 +48,9 @@ export const timeZones: TimeZoneData[] = [
   { id: 'Asia/Seoul', name: 'Seoul', offset: '+09:00', abbreviation: 'KST', countryName: 'South Korea' },
   { id: 'Asia/Dubai', name: 'Dubai', offset: '+04:00', abbreviation: 'GST', countryName: 'United Arab Emirates' },
   { id: 'Asia/Mumbai', name: 'Mumbai', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
+  { id: 'Asia/Kolkata', name: 'Kolkata', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
+  { id: 'Asia/Calcutta', name: 'Calcutta', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
+  { id: 'Asia/Delhi', name: 'Delhi', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
   { id: 'Asia/Bangkok', name: 'Bangkok', offset: '+07:00', abbreviation: 'ICT', countryName: 'Thailand' },
   
   // Australia & Pacific
@@ -201,35 +205,15 @@ export const getUserGeolocation = (): Promise<{latitude: number, longitude: numb
   });
 };
 
-// Get timezone from coordinates using Timezone API
+// Get timezone from coordinates using browser API
 export const getTimezoneFromCoordinates = async (latitude: number, longitude: number): Promise<string> => {
   try {
-    // Use TimeZone DB API to get accurate timezone from coordinates
-    const response = await fetch(`https://api.timezonedb.com/v2.1/get-time-zone?key=YOUR_API_KEY&format=json&by=position&lat=${latitude}&lng=${longitude}`).catch(() => null);
-    
-    if (response && response.ok) {
-      const data = await response.json();
-      if (data && data.zoneName) {
-        console.log("Detected timezone from API:", data.zoneName);
-        return data.zoneName;
-      }
-    }
-    
-    // Try to use the Intl API if API call fails
+    // Try to use the Intl API
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    console.log("Detected timezone from browser:", timezone);
+    console.info("Detected timezone from browser:", timezone);
     return timezone;
   } catch (error) {
-    console.error("Error getting timezone from API:", error);
-    
-    // Fallback to browser timezone detection
-    try {
-      const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      console.log("Falling back to browser timezone:", browserTimezone);
-      return browserTimezone;
-    } catch (innerError) {
-      console.error("Error getting browser timezone:", innerError);
-      return "America/New_York"; // Default fallback
-    }
+    console.error("Error getting timezone from browser:", error);
+    return "America/New_York"; // Default fallback
   }
 };

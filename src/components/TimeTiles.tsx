@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { timeZones } from '@/services/TimeUtils';
-import GeminiService from '@/services/GeminiService';
+import LlamaService from '@/services/LlamaService';
+import { toast } from '@/hooks/use-toast';
 
 export interface TimeZoneInfo {
   id: string;
@@ -46,18 +47,28 @@ const TimeTile: React.FC<{
     setSearching(true);
 
     try {
-      if (GeminiService.hasApiKey()) {
-        // Use Gemini to process the city/location name
+      if (LlamaService.hasApiKey()) {
+        // Use Llama to process the city/location name
         const query = `Time in ${customZone}`;
-        const result = await GeminiService.verifyTimeQuery(query);
+        const result = await LlamaService.verifyTimeQuery(query);
         
         if (result.fromZone) {
           // AI identified a timezone
           handleTimeZoneChange(result.fromZone);
           setCustomZone('');
-        } else {
-          // Fallback to basic matching
+          toast({
+            title: "Timezone Found",
+            description: `Matched ${customZone} to ${result.fromZone}`,
+          });
+        } else if (result.isValid) {
+          // AI says it's valid but didn't return a specific timezone - try parsing it ourselves
           fallbackSearch();
+        } else {
+          toast({
+            title: "Location Not Found",
+            description: result.suggestions || "Could not find a matching timezone for this location",
+            variant: "destructive",
+          });
         }
       } else {
         // No API key, use basic matching
@@ -77,12 +88,23 @@ const TimeTile: React.FC<{
     const matchingZone = timeZones.find(tz => 
       tz.name.toLowerCase().includes(searchTerm) ||
       tz.id.toLowerCase().includes(searchTerm) ||
-      (tz.abbreviation && tz.abbreviation.toLowerCase() === searchTerm)
+      (tz.abbreviation && tz.abbreviation.toLowerCase() === searchTerm) ||
+      (tz.countryName && tz.countryName.toLowerCase().includes(searchTerm))
     );
     
     if (matchingZone) {
       handleTimeZoneChange(matchingZone.id);
       setCustomZone('');
+      toast({
+        title: "Timezone Found",
+        description: `Matched ${customZone} to ${matchingZone.name}`,
+      });
+    } else {
+      toast({
+        title: "Location Not Found",
+        description: "Could not find a matching timezone. Try a different city or connect an AI API for better matching",
+        variant: "destructive",
+      });
     }
   };
   
@@ -103,7 +125,7 @@ const TimeTile: React.FC<{
               <DropdownMenuContent align="end" className="w-[300px] bg-neo-background border border-gray-700 max-h-[400px] overflow-y-auto">
                 <div className="p-2 sticky top-0 bg-neo-background z-10 border-b border-gray-700">
                   <Input
-                    placeholder="Search timezones..."
+                    placeholder="Enter city, state, or country..."
                     value={customZone}
                     onChange={(e) => setCustomZone(e.target.value)}
                     className="mb-2"
@@ -113,7 +135,7 @@ const TimeTile: React.FC<{
                     className="w-full"
                     disabled={searching}
                   >
-                    {searching ? 'Searching...' : 'Set Custom Timezone'}
+                    {searching ? 'Searching...' : 'Set Location'}
                   </Button>
                 </div>
                 <DropdownMenuSeparator />
@@ -123,7 +145,7 @@ const TimeTile: React.FC<{
                     onClick={() => handleTimeZoneChange(zone.id)}
                     className="text-white hover:bg-gray-700"
                   >
-                    {zone.name} ({zone.id})
+                    {zone.name} {zone.countryName && `(${zone.countryName})`}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
