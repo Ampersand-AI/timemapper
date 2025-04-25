@@ -12,28 +12,31 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/hooks/use-toast';
-import GeminiService from '@/services/GeminiService';
+import OpenRouterService, { AVAILABLE_MODELS } from '@/services/OpenRouterService';
 
 const SettingsButton: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [geminiApiKey, setGeminiApiKey] = useState(GeminiService.getApiKey() || '');
+  const [apiKey, setApiKey] = useState(OpenRouterService.getApiKey() || '');
+  const [selectedModel, setSelectedModel] = useState(OpenRouterService.getSelectedModel());
 
   const handleSaveSettings = () => {
     try {
-      // Save Gemini API key
-      if (geminiApiKey.trim()) {
-        GeminiService.setApiKey(geminiApiKey.trim());
+      // Save OpenRouter API key
+      if (apiKey.trim()) {
+        OpenRouterService.setApiKey(apiKey.trim());
+        OpenRouterService.setSelectedModel(selectedModel);
         toast({
           title: "Settings Saved",
-          description: "Gemini API key has been updated",
+          description: "OpenRouter API key and model have been updated",
         });
       } else {
         // If field is empty, clear the API key
-        GeminiService.setApiKey('');
+        OpenRouterService.setApiKey('');
         toast({
           title: "Settings Updated",
-          description: "Gemini API integration has been disabled",
+          description: "OpenRouter API integration has been disabled",
           variant: "destructive",
         });
       }
@@ -49,22 +52,23 @@ const SettingsButton: React.FC = () => {
     }
   };
 
-  const testGeminiAPI = async () => {
+  const testOpenRouterAPI = async () => {
     try {
-      if (!geminiApiKey.trim()) {
+      if (!apiKey.trim()) {
         toast({
           title: "Missing API Key",
-          description: "Please enter your Gemini API key first",
+          description: "Please enter your OpenRouter API key first",
           variant: "destructive",
         });
         return;
       }
 
       // Set the API key temporarily
-      GeminiService.setApiKey(geminiApiKey.trim());
+      OpenRouterService.setApiKey(apiKey.trim());
+      OpenRouterService.setSelectedModel(selectedModel);
 
       // Test with a simple query
-      const result = await GeminiService.verifyTimeQuery("Test query for Gemini API");
+      const result = await OpenRouterService.verifyTimeQuery("Test query for OpenRouter API");
 
       if (result.error) {
         toast({
@@ -75,11 +79,11 @@ const SettingsButton: React.FC = () => {
       } else {
         toast({
           title: "API Test Successful",
-          description: "Connection to Gemini API is working",
+          description: "Connection to OpenRouter API is working",
         });
       }
     } catch (error) {
-      console.error('Gemini API test error:', error);
+      console.error('OpenRouter API test error:', error);
       toast({
         title: "API Test Failed",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -110,12 +114,12 @@ const SettingsButton: React.FC = () => {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="geminiApiKey">Gemini API Key</Label>
+              <Label htmlFor="apiKey">OpenRouter API Key</Label>
               <Input
-                id="geminiApiKey"
-                value={geminiApiKey}
-                onChange={(e) => setGeminiApiKey(e.target.value)}
-                placeholder="Enter your Gemini API key"
+                id="apiKey"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter your OpenRouter API key"
                 className="neo-inset bg-neo-inset text-white"
                 type="password"
               />
@@ -123,14 +127,32 @@ const SettingsButton: React.FC = () => {
                 Used for AI-enhanced query validation and processing
               </p>
             </div>
+
+            <div className="space-y-2">
+              <Label>Select Model</Label>
+              <RadioGroup 
+                value={selectedModel} 
+                onValueChange={setSelectedModel}
+                className="space-y-2"
+              >
+                {AVAILABLE_MODELS.map((model) => (
+                  <div key={model.id} className="flex items-center space-x-2">
+                    <RadioGroupItem value={model.id} id={model.id} />
+                    <Label htmlFor={model.id} className="text-sm">
+                      {model.name} - {model.description}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
             
             <Button 
               type="button" 
               variant="outline" 
-              onClick={testGeminiAPI}
+              onClick={testOpenRouterAPI}
               className="w-full"
             >
-              Test Gemini API
+              Test OpenRouter API
             </Button>
           </div>
 
