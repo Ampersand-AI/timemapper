@@ -1,4 +1,3 @@
-
 import { format, formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { addHours, differenceInHours } from 'date-fns';
 
@@ -18,27 +17,54 @@ export interface ConvertedTime {
   timeGap: number;
 }
 
-// Expanded timezone database with common zones
+// Expanded timezone database with common zones and cities
 export const timeZones: TimeZoneData[] = [
   { id: 'America/New_York', name: 'New York', offset: '-05:00', abbreviation: 'EST' },
   { id: 'America/Los_Angeles', name: 'Los Angeles', offset: '-08:00', abbreviation: 'PST' },
   { id: 'America/Chicago', name: 'Chicago', offset: '-06:00', abbreviation: 'CST' },
   { id: 'America/Denver', name: 'Denver', offset: '-07:00', abbreviation: 'MST' },
+  { id: 'America/Phoenix', name: 'Phoenix', offset: '-07:00', abbreviation: 'MST' },
+  { id: 'America/Toronto', name: 'Toronto', offset: '-05:00', abbreviation: 'EST' },
+  { id: 'America/Vancouver', name: 'Vancouver', offset: '-08:00', abbreviation: 'PST' },
+  { id: 'America/Mexico_City', name: 'Mexico City', offset: '-06:00', abbreviation: 'CST' },
+  { id: 'America/Sao_Paulo', name: 'Sao Paulo', offset: '-03:00', abbreviation: 'BRT' },
+  { id: 'America/Buenos_Aires', name: 'Buenos Aires', offset: '-03:00', abbreviation: 'ART' },
   { id: 'Europe/London', name: 'London', offset: '+00:00', abbreviation: 'GMT' },
   { id: 'Europe/Paris', name: 'Paris', offset: '+01:00', abbreviation: 'CET' },
   { id: 'Europe/Berlin', name: 'Berlin', offset: '+01:00', abbreviation: 'CET' },
+  { id: 'Europe/Madrid', name: 'Madrid', offset: '+01:00', abbreviation: 'CET' },
+  { id: 'Europe/Rome', name: 'Rome', offset: '+01:00', abbreviation: 'CET' },
+  { id: 'Europe/Amsterdam', name: 'Amsterdam', offset: '+01:00', abbreviation: 'CET' },
+  { id: 'Europe/Moscow', name: 'Moscow', offset: '+03:00', abbreviation: 'MSK' },
+  { id: 'Europe/Stockholm', name: 'Stockholm', offset: '+01:00', abbreviation: 'CET' },
+  { id: 'Europe/Oslo', name: 'Oslo', offset: '+01:00', abbreviation: 'CET' },
+  { id: 'Europe/Copenhagen', name: 'Copenhagen', offset: '+01:00', abbreviation: 'CET' },
+  { id: 'Europe/Zurich', name: 'Zurich', offset: '+01:00', abbreviation: 'CET' },
   { id: 'Asia/Tokyo', name: 'Tokyo', offset: '+09:00', abbreviation: 'JST' },
-  { id: 'Asia/Kolkata', name: 'India', offset: '+05:30', abbreviation: 'IST' },
-  { id: 'Asia/Shanghai', name: 'China', offset: '+08:00', abbreviation: 'CST' },
+  { id: 'Asia/Kolkata', name: 'India', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
+  { id: 'Asia/Shanghai', name: 'Shanghai', offset: '+08:00', abbreviation: 'CST', countryName: 'China' },
+  { id: 'Asia/Hong_Kong', name: 'Hong Kong', offset: '+08:00', abbreviation: 'HKT' },
   { id: 'Asia/Singapore', name: 'Singapore', offset: '+08:00', abbreviation: 'SGT' },
+  { id: 'Asia/Seoul', name: 'Seoul', offset: '+09:00', abbreviation: 'KST' },
+  { id: 'Asia/Dubai', name: 'Dubai', offset: '+04:00', abbreviation: 'GST' },
+  { id: 'Asia/Bangkok', name: 'Bangkok', offset: '+07:00', abbreviation: 'ICT' },
+  { id: 'Asia/Jakarta', name: 'Jakarta', offset: '+07:00', abbreviation: 'WIB' },
   { id: 'Australia/Sydney', name: 'Sydney', offset: '+11:00', abbreviation: 'AEDT' },
   { id: 'Australia/Melbourne', name: 'Melbourne', offset: '+11:00', abbreviation: 'AEDT' },
+  { id: 'Australia/Perth', name: 'Perth', offset: '+08:00', abbreviation: 'AWST' },
+  { id: 'Australia/Brisbane', name: 'Brisbane', offset: '+10:00', abbreviation: 'AEST' },
   { id: 'Pacific/Auckland', name: 'Auckland', offset: '+13:00', abbreviation: 'NZDT' },
+  { id: 'Africa/Johannesburg', name: 'Johannesburg', offset: '+02:00', abbreviation: 'SAST' },
+  { id: 'Africa/Cairo', name: 'Cairo', offset: '+02:00', abbreviation: 'EET' },
+  { id: 'Africa/Lagos', name: 'Lagos', offset: '+01:00', abbreviation: 'WAT' },
+  { id: 'Africa/Nairobi', name: 'Nairobi', offset: '+03:00', abbreviation: 'EAT' },
   { id: 'Etc/UTC', name: 'UTC', offset: '+00:00', abbreviation: 'UTC' },
 ];
 
-// Find a timezone by various inputs (name, abbreviation, country)
+// Find a timezone by various inputs (name, abbreviation, country, city)
 export const findTimeZone = (query: string): TimeZoneData | undefined => {
+  if (!query) return undefined;
+  
   const normalizedQuery = query.trim().toLowerCase();
   
   console.log(`Searching for time zone: "${normalizedQuery}"`);
@@ -53,20 +79,82 @@ export const findTimeZone = (query: string): TimeZoneData | undefined => {
     return exactMatch;
   }
   
-  // Try to find by partial match
-  const partialMatch = timeZones.find(tz => 
-    tz.id.toLowerCase().includes(normalizedQuery) ||
-    tz.name.toLowerCase().includes(normalizedQuery) ||
-    tz.abbreviation.toLowerCase() === normalizedQuery ||
-    (tz.countryName?.toLowerCase().includes(normalizedQuery))
+  // Try to find by exact abbreviation (case insensitive)
+  const exactAbbrev = timeZones.find(tz =>
+    tz.abbreviation.toLowerCase() === normalizedQuery
   );
   
-  if (partialMatch) {
-    console.log(`Found partial match: ${partialMatch.id}`);
-    return partialMatch;
+  if (exactAbbrev) {
+    console.log(`Found exact abbreviation match: ${exactAbbrev.id}`);
+    return exactAbbrev;
   }
   
-  // No match found
+  // Try to find by exact name (case insensitive)
+  const exactName = timeZones.find(tz =>
+    tz.name.toLowerCase() === normalizedQuery || 
+    (tz.countryName && tz.countryName.toLowerCase() === normalizedQuery)
+  );
+  
+  if (exactName) {
+    console.log(`Found exact name match: ${exactName.id}`);
+    return exactName;
+  }
+  
+  // Try to find by city name within timezone ID
+  const cityInId = timeZones.find(tz => {
+    // Extract city name from "Continent/City" format
+    const cityPart = tz.id.split('/').pop()?.toLowerCase().replace('_', ' ');
+    return cityPart === normalizedQuery;
+  });
+  
+  if (cityInId) {
+    console.log(`Found city in ID match: ${cityInId.id}`);
+    return cityInId;
+  }
+  
+  // Try to find by partial match with more specific prioritization
+  // 1. Check if query is in the name
+  const nameMatch = timeZones.find(tz => 
+    tz.name.toLowerCase().includes(normalizedQuery)
+  );
+  
+  if (nameMatch) {
+    console.log(`Found partial name match: ${nameMatch.id}`);
+    return nameMatch;
+  }
+  
+  // 2. Check if query is in the ID
+  const idMatch = timeZones.find(tz => 
+    tz.id.toLowerCase().includes(normalizedQuery)
+  );
+  
+  if (idMatch) {
+    console.log(`Found partial ID match: ${idMatch.id}`);
+    return idMatch;
+  }
+  
+  // 3. Check country name
+  const countryMatch = timeZones.find(tz => 
+    tz.countryName?.toLowerCase().includes(normalizedQuery)
+  );
+  
+  if (countryMatch) {
+    console.log(`Found country match: ${countryMatch.id}`);
+    return countryMatch;
+  }
+  
+  // No match found - last attempt with very fuzzy matching
+  const fuzzyMatch = timeZones.find(tz => {
+    // Split ID into parts and check if any part contains the query
+    const idParts = tz.id.toLowerCase().split(/[\/\_\-\s]/);
+    return idParts.some(part => part.includes(normalizedQuery));
+  });
+  
+  if (fuzzyMatch) {
+    console.log(`Found fuzzy match: ${fuzzyMatch.id}`);
+    return fuzzyMatch;
+  }
+  
   console.log(`No time zone found for query: "${normalizedQuery}"`);
   return undefined;
 };

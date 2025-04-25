@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,43 +55,37 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     setIsValidating(true);
 
     try {
-      if (OpenRouterService.hasApiKey()) {
-        const result = await OpenRouterService.verifyTimeQuery(query);
-        console.log("OpenRouter validation result:", result);
-        
-        if (!result.isValid) {
-          toast({
-            title: "Invalid Query",
-            description: result.suggestions || "Please specify a time and at least one timezone",
-            variant: "destructive",
-          });
-          setIsValidating(false);
-          return;
-        }
-        
-        // Pass the enhanced query with timezone info
-        onQuerySubmit(query);
-      } else {
-        // Fallback to basic validation if OpenRouter is not configured
-        const parsedQuery = parseTimeQuery(query);
-        if (!parsedQuery.isValid) {
-          toast({
-            title: "Invalid Query",
-            description: "Please specify a time and at least one timezone. Example: '3pm EST to Tokyo'",
-            variant: "destructive",
-          });
-          setIsValidating(false);
-          return;
-        }
-        
-        // Submit the query if valid
-        onQuerySubmit(query);
+      const result = OpenRouterService.hasApiKey() 
+        ? await OpenRouterService.verifyTimeQuery(query)
+        : { isValid: parseTimeQuery(query).isValid };
+      
+      if (!result.isValid) {
+        toast({
+          title: "Invalid Query",
+          description: result.suggestions || "Please specify a time and at least one timezone or city",
+          variant: "destructive",
+        });
+        setIsValidating(false);
+        return;
       }
+      
+      // Pass the query to parent component
+      onQuerySubmit(query);
       setQuery('');
     } catch (error) {
       console.error('Error validating query:', error);
-      onQuerySubmit(query);
-      setQuery('');
+      // Fallback to basic validation
+      const parsedQuery = parseTimeQuery(query);
+      if (parsedQuery.isValid) {
+        onQuerySubmit(query);
+        setQuery('');
+      } else {
+        toast({
+          title: "Invalid Query",
+          description: "Please try a different query format",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsValidating(false);
     }
@@ -126,21 +121,27 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             // Auto-stop voice recording
             stopVoiceInput();
             
-            // If OpenRouter is configured, use it to validate the query
+            // Immediately process valid queries for better responsiveness
+            const parsedQuery = parseTimeQuery(transcript);
+            if (parsedQuery.isValid) {
+              setTimeout(() => {
+                onQuerySubmit(transcript);
+                setQuery('');
+              }, 300); // Reduced timeout for faster response
+              return;
+            }
+            
+            // Only use AI validation if basic validation fails
             if (OpenRouterService.hasApiKey()) {
               try {
                 setIsValidating(true);
                 const result = await OpenRouterService.verifyTimeQuery(transcript);
                 
                 if (result.isValid) {
-                  // Auto-submit only if query is valid
-                  setTimeout(() => {
-                    onQuerySubmit(transcript);
-                    setQuery('');
-                    setIsValidating(false);
-                  }, 500);
+                  // Auto-submit if query is valid
+                  onQuerySubmit(transcript);
+                  setQuery('');
                 } else {
-                  setIsValidating(false);
                   toast({
                     title: "Invalid Query",
                     description: result.suggestions || "Please try again with a clearer query",
@@ -149,22 +150,13 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
                 }
               } catch (error) {
                 console.error('Error validating voice query:', error);
-                setIsValidating(false);
-                // Fall back to basic validation
-                const parsedQuery = parseTimeQuery(transcript);
+                // Still try with basic validation as fallback
                 if (parsedQuery.isValid) {
                   onQuerySubmit(transcript);
                   setQuery('');
                 }
-              }
-            } else {
-              // Use basic validation if OpenRouter is not configured
-              const parsedQuery = parseTimeQuery(transcript);
-              if (parsedQuery.isValid) {
-                setTimeout(() => {
-                  onQuerySubmit(transcript);
-                  setQuery('');
-                }, 500);
+              } finally {
+                setIsValidating(false);
               }
             }
           }
@@ -216,7 +208,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
       </div>
       
       <div className="mt-2 text-xs text-gray-400">
-        Try: "What's 3pm EST in Tokyo?" or "Convert 9am London to PST"
+        Try: "What's 3pm EST in Tokyo?" or "5pm in Berlin" or "Convert 9am London to New York"
       </div>
     </form>
   );

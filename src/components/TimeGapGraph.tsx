@@ -1,7 +1,9 @@
-import React from 'react';
+
+import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getWorkingHoursRange } from '@/services/TimeUtils';
 import { Clock } from 'lucide-react';
+import { differenceInHours, formatInTimeZone } from 'date-fns-tz';
 
 interface TimeGapGraphProps {
   fromZoneId: string;
@@ -39,43 +41,62 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date }) => {
   console.log("Rendering TimeGapGraph with:", { fromZoneId, toZoneId, date: date.toISOString() });
   
-  // Get the working hours data for both time zones
-  const myHours = getWorkingHoursRange(date, fromZoneId);
-  const theirHours = getWorkingHoursRange(date, toZoneId);
-  
-  // Prepare data for the chart with exact time differences
-  const chartData = myHours.map((myHour) => {
-    const myWorkingHour = myHour.isWorkingHour ? 1 : 0.3;
+  // Memoize the chart data to avoid recalculations on re-renders
+  const { chartData, overlappingHours, exactTimeDiff } = useMemo(() => {
+    // Get the working hours data for both time zones
+    const myHours = getWorkingHoursRange(date, fromZoneId);
+    const theirHours = getWorkingHoursRange(date, toZoneId);
     
-    // Find the equivalent "their hour" with exact time difference
-    const theirHourAtSameTime = theirHours.find(theirHour => 
-      Math.abs(theirHour.timestamp - myHour.timestamp) < 5 * 60 * 1000
-    );
+    // Calculate exact time difference between the two zones
+    const now = new Date();
+    const fromDate = new Date(now);
+    const toDate = new Date(now);
     
-    const theirWorkingHour = theirHourAtSameTime?.isWorkingHour ? 1 : 0.3;
-    const theirTime = theirHourAtSameTime?.hour || "Unknown";
+    // Format the dates in their respective timezones
+    const fromDateFormatted = formatInTimeZone(fromDate, fromZoneId, 'yyyy-MM-dd HH:mm:ss');
+    const toDateFormatted = formatInTimeZone(toDate, toZoneId, 'yyyy-MM-dd HH:mm:ss');
     
-    // Calculate exact time difference
-    const timeDiff = theirHourAtSameTime ? 
-      (theirHourAtSameTime.timestamp - myHour.timestamp) / (1000 * 60 * 60) : 
-      0;
+    // Parse back to get actual timezone-adjusted Date objects
+    const fromDateAdjusted = new Date(fromDateFormatted);
+    const toDateAdjusted = new Date(toDateFormatted);
+    
+    // Calculate the exact difference in hours (can be decimal)
+    const exactTimeDiff = Math.abs((toDateAdjusted.getTime() - fromDateAdjusted.getTime()) / (1000 * 60 * 60));
+    
+    // Prepare data for the chart with exact time differences
+    const chartData = myHours.map((myHour) => {
+      const myWorkingHour = myHour.isWorkingHour ? 1 : 0.3;
+      
+      // Find the equivalent "their hour" at the same moment in time
+      const myHourTimestamp = myHour.timestamp;
+      const theirHourAtSameTime = theirHours.find(theirHour => {
+        const timeDiff = Math.abs(theirHour.timestamp - myHourTimestamp);
+        return timeDiff < 10 * 60 * 1000; // Within 10 minutes to account for any minor calculation differences
+      });
+      
+      const theirWorkingHour = theirHourAtSameTime?.isWorkingHour ? 1 : 0.3;
+      const theirTime = theirHourAtSameTime?.hour || "Unknown";
+      
+      return {
+        hour: myHour.hour,
+        from: myWorkingHour,
+        to: theirWorkingHour,
+        fromTime: myHour.hour,
+        toTime: theirTime,
+        overlapping: myHour.isWorkingHour && theirHourAtSameTime?.isWorkingHour
+      };
+    });
+    
+    // Calculate exact overlapping working hours
+    const workingHoursOverlap = chartData.filter(hour => hour.overlapping).length;
     
     return {
-      hour: myHour.hour,
-      from: myWorkingHour,
-      to: theirWorkingHour,
-      fromTime: myHour.hour,
-      toTime: theirTime,
-      timeDiff: Math.abs(timeDiff),
-      overlapping: myHour.isWorkingHour && theirHourAtSameTime?.isWorkingHour
+      chartData, 
+      overlappingHours: workingHoursOverlap,
+      exactTimeDiff
     };
-  });
+  }, [fromZoneId, toZoneId, date]);
   
-  // Calculate exact overlapping working hours
-  const overlappingHours = chartData.reduce((acc, hour) => 
-    hour.overlapping ? acc + 1 : acc, 0
-  );
-
   return (
     <div className="neo-raised p-4 mt-6 text-white">
       <h3 className="text-lg font-medium mb-2 flex items-center">
@@ -142,7 +163,7 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
           You have exactly <span className="text-white font-medium">{overlappingHours} hours</span> of overlapping working time.
           <br />
           <span className="text-sm mt-1 block">
-            Time difference: {chartData[0]?.timeDiff.toFixed(1)} hours
+            Time difference: <span className="text-white font-medium">{exactTimeDiff.toFixed(1)} hours</span>
           </span>
         </p>
       </div>

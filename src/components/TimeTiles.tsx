@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { format } from 'date-fns';
 import { formatToTimeZone } from '@/services/TimeUtils';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
@@ -32,7 +31,7 @@ const TimeTile: React.FC<{
   onTimeZoneChange?: (oldZoneId: string, newZoneId: string) => void;
 }> = ({ timeZone, onTimeZoneChange }) => {
   const [customZone, setCustomZone] = useState('');
-  const [isCustomInputOpen, setIsCustomInputOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
   const isSource = !!timeZone.isSource;
 
   const handleTimeZoneChange = (newZoneId: string) => {
@@ -43,31 +42,47 @@ const TimeTile: React.FC<{
 
   const handleCustomZoneSubmit = async () => {
     if (!customZone.trim()) return;
+    
+    setSearching(true);
 
     try {
       if (OpenRouterService.hasApiKey()) {
-        // Verify timezone with OpenRouter AI
-        const result = await OpenRouterService.verifyTimeQuery(`time in ${customZone}`);
+        // Use OpenRouter AI to process the city/location name
+        const query = `Time in ${customZone}`;
+        const result = await OpenRouterService.verifyTimeQuery(query);
+        
         if (result.fromZone) {
+          // AI identified a timezone
           handleTimeZoneChange(result.fromZone);
           setCustomZone('');
-          setIsCustomInputOpen(false);
         } else {
-          throw new Error('Invalid timezone');
+          // Fallback to basic matching
+          fallbackSearch();
         }
+      } else {
+        // No API key, use basic matching
+        fallbackSearch();
       }
     } catch (error) {
       console.error('Error setting custom timezone:', error);
-      // Fallback to basic timezone search
-      const matchingZone = timeZones.find(tz => 
-        tz.name.toLowerCase().includes(customZone.toLowerCase()) ||
-        tz.id.toLowerCase().includes(customZone.toLowerCase())
-      );
-      if (matchingZone) {
-        handleTimeZoneChange(matchingZone.id);
-        setCustomZone('');
-        setIsCustomInputOpen(false);
-      }
+      fallbackSearch();
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const fallbackSearch = () => {
+    // Basic timezone search logic
+    const searchTerm = customZone.toLowerCase();
+    const matchingZone = timeZones.find(tz => 
+      tz.name.toLowerCase().includes(searchTerm) ||
+      tz.id.toLowerCase().includes(searchTerm) ||
+      (tz.abbreviation && tz.abbreviation.toLowerCase() === searchTerm)
+    );
+    
+    if (matchingZone) {
+      handleTimeZoneChange(matchingZone.id);
+      setCustomZone('');
     }
   };
   
@@ -79,42 +94,40 @@ const TimeTile: React.FC<{
             <h3 className={`text-lg font-medium ${isSource ? 'text-gradient-teal' : 'text-gradient-orange'}`}>
               {timeZone.name}
             </h3>
-            {/* Only show settings icon on user's time card */}
-            {isSource && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Settings className="h-4 w-4" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[300px] bg-neo-background border border-gray-700 max-h-[400px] overflow-y-auto">
+                <div className="p-2 sticky top-0 bg-neo-background z-10 border-b border-gray-700">
+                  <Input
+                    placeholder="Search timezones..."
+                    value={customZone}
+                    onChange={(e) => setCustomZone(e.target.value)}
+                    className="mb-2"
+                  />
+                  <Button 
+                    onClick={handleCustomZoneSubmit}
+                    className="w-full"
+                    disabled={searching}
+                  >
+                    {searching ? 'Searching...' : 'Set Custom Timezone'}
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[300px] bg-neo-background border border-gray-700">
-                  {timeZones.map((zone) => (
-                    <DropdownMenuItem
-                      key={zone.id}
-                      onClick={() => handleTimeZoneChange(zone.id)}
-                      className="text-white hover:bg-gray-700"
-                    >
-                      {zone.name} ({zone.id})
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <div className="p-2">
-                    <Input
-                      placeholder="Enter custom timezone or city..."
-                      value={customZone}
-                      onChange={(e) => setCustomZone(e.target.value)}
-                      className="mb-2"
-                    />
-                    <Button 
-                      onClick={handleCustomZoneSubmit}
-                      className="w-full"
-                    >
-                      Set Custom Timezone
-                    </Button>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                </div>
+                <DropdownMenuSeparator />
+                {timeZones.map((zone) => (
+                  <DropdownMenuItem
+                    key={zone.id}
+                    onClick={() => handleTimeZoneChange(zone.id)}
+                    className="text-white hover:bg-gray-700"
+                  >
+                    {zone.name} ({zone.id})
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <p className="text-xs text-gray-400 mt-1">{timeZone.id}</p>
         </div>

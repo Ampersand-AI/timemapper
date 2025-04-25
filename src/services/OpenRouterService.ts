@@ -73,23 +73,25 @@ const OpenRouterService = {
           messages: [{
             role: 'user',
             content: `Given the following time zone query: "${query}", determine if it is a valid request for time zone conversion. 
-            A valid request should include at least one time (like "3pm" or "15:00") AND at least one time zone (like "EST" or "Tokyo").
+            A valid request should include at least one time (like "3pm" or "15:00") AND at least one time zone, city, or location (like "EST", "Tokyo", or "New York").
             The query may also include a date (like "tomorrow", "next Monday", or "March 15th").
             
-            Please be generous in identifying time zones. If there is ANY mention of a place or standard time abbreviation that could be a time zone, consider it valid.
+            Please be generous in identifying time zones or locations. If there is ANY mention of a place, city, country or standard time abbreviation that could be a time zone, consider it valid.
+            
+            If a city name is provided (like "Paris", "London", "Tokyo"), map it to its proper time zone ID.
             
             Please respond with a JSON object containing:
             {
               "isValid": boolean,
-              "fromZone": string or null,
-              "toZone": string or null,
-              "time": string or null,
-              "date": string or null,
-              "suggestions": string or null
+              "fromZone": string or null (time zone ID, city name or abbreviation of source),
+              "toZone": string or null (time zone ID, city name or abbreviation of target),
+              "time": string or null (the time mentioned in the query),
+              "date": string or null (any date information in the query),
+              "suggestions": string or null (suggestions for improving the query if invalid)
             }`
           }],
-          temperature: 0.2,
-          max_tokens: 200
+          temperature: 0.1,
+          max_tokens: 300
         })
       });
       
@@ -125,7 +127,7 @@ const OpenRouterService = {
           time: result.time || undefined,
           date: result.date || undefined,
           suggestions: !result.isValid ? 
-            (result.suggestions || 'Please include a time and at least one timezone') : 
+            (result.suggestions || 'Please include a time and at least one timezone or city') : 
             undefined
         };
       } catch (parseError) {
@@ -148,13 +150,10 @@ const OpenRouterService = {
     // Check for presence of time
     const hasTime = /\d+\s*(am|pm|a\.m\.|p\.m\.)|\d+:\d+/.test(normalizedQuery);
     
-    // Check for presence of timezone - expanded to be more inclusive
-    const hasTimeZone = /est|pst|cst|mst|gmt|cet|jst|ist|utc|edt|pdt|bst|aest|nzst|hst|akst|europe|asia|america|australia|pacific|tokyo|new york|london|paris|berlin|sydney|chicago|los angeles|toronto|mexico|india/.test(normalizedQuery);
+    // Check for presence of timezone or city - expanded to be more inclusive
+    const hasTimeZoneOrCity = /est|pst|cst|mst|gmt|cet|jst|ist|utc|edt|pdt|bst|aest|nzst|hst|akst|europe|asia|america|australia|pacific|tokyo|new york|london|paris|berlin|sydney|chicago|los angeles|toronto|mexico|india|singapore|dubai|moscow|rome|madrid|barcelona|amsterdam|frankfurt|vienna|zurich|beijing|shanghai|seoul|bangkok|istanbul|cairo|johannesburg|sao paulo|rio|buenos aires|lima|santiago|bogota|caracas|nairobi|lagos/.test(normalizedQuery);
     
-    // Check for dates
-    const hasDate = /today|tomorrow|next|monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|may|june|july|august|september|october|november|december|\d+(?:st|nd|rd|th)/.test(normalizedQuery);
-    
-    return hasTime && hasTimeZone;
+    return hasTime && hasTimeZoneOrCity;
   }
 };
 
