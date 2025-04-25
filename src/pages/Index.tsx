@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import TimeInput from '@/components/TimeInput';
 import TimeTiles, { TimeZoneInfo } from '@/components/TimeTiles';
@@ -178,9 +177,12 @@ const Index: React.FC = () => {
     setIsDetectingLocation(true);
     
     try {
-      // Reset the display before processing a new query - IMPORTANT CHANGE
+      // Reset the display before processing a new query
       setShowGraph(false);
       setShowContext(false);
+      
+      // Keep track of user's timezone card
+      const userTimeZoneCard = timeZones.find(tz => tz.isSource);
       
       // Try to use Gemini for enhanced query parsing if available
       if (GeminiService.hasApiKey()) {
@@ -188,18 +190,16 @@ const Index: React.FC = () => {
         
         if (geminiResult.isValid) {
           // Use the enhanced data from Gemini
-          const fromZoneStr = geminiResult.fromZone || userTimeZone || 'America/New_York';
           const toZoneStr = geminiResult.toZone;
           const timeStr = geminiResult.time;
           
           console.log("Gemini parsed query:", geminiResult);
           
-          // Find time zones based on the query
-          const fromZone = findTimeZone(fromZoneStr);
+          // Find target timezone based on the query
           const toZone = toZoneStr ? findTimeZone(toZoneStr) : null;
           
-          if (!fromZone) {
-            throw new Error(`Could not find source timezone: ${fromZoneStr}`);
+          if (!toZone) {
+            throw new Error(`Could not find target timezone: ${toZoneStr}`);
           }
           
           // Parse the time from the query (default to current time if not specified)
@@ -223,13 +223,13 @@ const Index: React.FC = () => {
             }
           }
           
-          // If only one timezone was specified, use the user's timezone for the other
-          if (toZone) {
-            processTimeZones(fromZone, toZone, timeToConvert, geminiResult.isValid);
-          } else {
-            // If only a single location or time was specified, just show that timezone
-            displaySingleTimezone(fromZone, timeToConvert);
-          }
+          // Always include user's timezone card along with the searched timezone
+          processTimeZones(
+            findTimeZone(userTimeZone || 'America/New_York'),
+            toZone,
+            timeToConvert,
+            geminiResult.isValid
+          );
           
           setIsDetectingLocation(false);
           return;
@@ -245,8 +245,9 @@ const Index: React.FC = () => {
         const matchedZone = findTimeZone(possibleLocation);
         
         if (matchedZone) {
-          // Just display this single timezone
-          displaySingleTimezone(matchedZone, new Date());
+          // Display both user's timezone and the matched timezone
+          const userZone = findTimeZone(userTimeZone || 'America/New_York');
+          processTimeZones(userZone, matchedZone, new Date(), true);
           setIsDetectingLocation(false);
           return;
         }
@@ -262,18 +263,17 @@ const Index: React.FC = () => {
       
       console.log("Basic parser result:", parsedQuery);
       
-      // Find time zones based on the query
-      const fromZone = parsedQuery.fromZone 
-        ? findTimeZone(parsedQuery.fromZone)
-        : findTimeZone(userTimeZone || 'America/New_York'); // Use detected timezone or default
-      
+      // Find target timezone based on the query
       const toZone = parsedQuery.toZone 
         ? findTimeZone(parsedQuery.toZone)
         : null;
       
-      if (!fromZone) {
-        throw new Error(`Could not find source timezone: ${parsedQuery.fromZone}`);
+      if (!toZone) {
+        throw new Error(`Could not find target timezone: ${parsedQuery.toZone}`);
       }
+      
+      // Always use user's timezone as source
+      const userZone = findTimeZone(userTimeZone || 'America/New_York');
       
       // Parse the time from the query (default to current time if not specified)
       let timeToConvert = new Date();
@@ -293,12 +293,7 @@ const Index: React.FC = () => {
         timeToConvert.setHours(hours, minutes, 0, 0);
       }
       
-      if (toZone) {
-        processTimeZones(fromZone, toZone, timeToConvert, parsedQuery.isValid);
-      } else {
-        // If only a single location or time was specified, just show that timezone
-        displaySingleTimezone(fromZone, timeToConvert);
-      }
+      processTimeZones(userZone, toZone, timeToConvert, parsedQuery.isValid);
       
     } catch (error) {
       console.error('Error processing query:', error);
