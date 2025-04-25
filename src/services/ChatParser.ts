@@ -12,6 +12,7 @@ interface ParsedQuery {
 
 // Common time zone aliases
 const zoneAliases: Record<string, string> = {
+  // North America
   "eastern": "America/New_York",
   "et": "America/New_York", 
   "est": "America/New_York",
@@ -26,7 +27,7 @@ const zoneAliases: Record<string, string> = {
   "los angeles": "America/Los_Angeles",
   "central": "America/Chicago",
   "ct": "America/Chicago",
-  "cst": "America/Chicago",
+  "cst": "America/Chicago", // North American Central (not to be confused with China)
   "cdt": "America/Chicago",
   "chicago": "America/Chicago",
   "mountain": "America/Denver",
@@ -34,27 +35,37 @@ const zoneAliases: Record<string, string> = {
   "mst": "America/Denver",
   "mdt": "America/Denver",
   "denver": "America/Denver",
+  
+  // Europe & UTC
   "gmt": "Europe/London",
   "utc": "Etc/UTC",
   "london": "Europe/London",
   "uk": "Europe/London",
-  "ist": "Asia/Kolkata",
-  "india": "Asia/Kolkata",
-  "jst": "Asia/Tokyo",
-  "japan": "Asia/Tokyo",
-  "tokyo": "Asia/Tokyo",
   "cet": "Europe/Paris",
   "paris": "Europe/Paris",
   "berlin": "Europe/Berlin",
   "germany": "Europe/Berlin",
+  
+  // Asia
+  "ist": "Asia/Kolkata",
+  "india": "Asia/Kolkata",
+  "mumbai": "Asia/Kolkata",
+  "delhi": "Asia/Kolkata",
+  "new delhi": "Asia/Kolkata",
+  "jst": "Asia/Tokyo",
+  "japan": "Asia/Tokyo",
+  "tokyo": "Asia/Tokyo",
+  "beijing": "Asia/Shanghai",
+  "china": "Asia/Shanghai",
+  "cst china": "Asia/Shanghai", // China Standard Time
+  "singapore": "Asia/Singapore",
+  "sgt": "Asia/Singapore",
+  
+  // Australia & Pacific
   "aest": "Australia/Sydney",
   "sydney": "Australia/Sydney",
   "australia": "Australia/Sydney",
-  "singapore": "Asia/Singapore",
-  "sgt": "Asia/Singapore",
-  "beijing": "Asia/Shanghai",
-  "china": "Asia/Shanghai",
-  "cst china": "Asia/Shanghai",
+  "melbourne": "Australia/Melbourne",
 };
 
 // Time patterns to match in queries
@@ -64,6 +75,7 @@ const timePatterns = {
   timeWithoutColon: /\b(\d{1,2})(\d{2})(?:\s*(am|pm))?\b/i,
   hour24: /\b([01]\d|2[0-3])(?::([0-5]\d))?\b/,
   militaryTime: /\b([01]\d|2[0-3])([0-5]\d)\b/,
+  justHour: /\b(\d{1,2})\s*(?:o'?clock)?\s*(am|pm)?\b/i,
 };
 
 // Day patterns (today, tomorrow, weekday names)
@@ -79,13 +91,22 @@ const dayPatterns = {
 // Extract time zones from user input
 const extractTimeZones = (text: string): { fromZone?: string; toZone?: string } => {
   const result = { fromZone: undefined as string | undefined, toZone: undefined as string | undefined };
-  const parts = text.toLowerCase().split(/\s+/);
+  const lowerText = text.toLowerCase();
+  const parts = lowerText.split(/\s+/);
   
   // Look for patterns like "in PST", "from EST to JST"
   const inPattern = /\bin\s+([a-z\s]+)\b/i;
   const fromToPattern = /\bfrom\s+([a-z\s]+)\s+to\s+([a-z\s]+)\b/i;
   
-  // Try from-to pattern first
+  // Check for "I am in [zone]" pattern
+  const iAmInPattern = /\bi(?:'m| am)\s+in\s+([a-z\s]+)\b/i;
+  const iAmInMatch = text.match(iAmInPattern);
+  if (iAmInMatch) {
+    const zoneKey = iAmInMatch[1].toLowerCase().trim();
+    if (zoneAliases[zoneKey]) result.fromZone = zoneAliases[zoneKey];
+  }
+  
+  // Try from-to pattern
   const fromToMatch = text.match(fromToPattern);
   if (fromToMatch) {
     const fromKey = fromToMatch[1].toLowerCase().trim();
@@ -98,23 +119,45 @@ const extractTimeZones = (text: string): { fromZone?: string; toZone?: string } 
     return result;
   }
   
-  // Try "in" pattern
+  // Try "in" pattern for target time zone
   const inMatch = text.match(inPattern);
   if (inMatch) {
     const zoneKey = inMatch[1].toLowerCase().trim();
-    if (zoneAliases[zoneKey]) result.fromZone = zoneAliases[zoneKey];
+    if (zoneAliases[zoneKey]) {
+      // If we already have a "from" zone from "I am in", this is the "to" zone
+      if (result.fromZone) {
+        result.toZone = zoneAliases[zoneKey];
+      } else {
+        result.fromZone = zoneAliases[zoneKey]; 
+      }
+    }
+  }
+  
+  // Check for "call at X time [zone]" pattern
+  const callPattern = /\bcall\s+(?:at|in|for)?\s+.*?\b([a-z]{3,4})\b/i;
+  const callMatch = text.match(callPattern);
+  if (callMatch) {
+    const zoneKey = callMatch[1].toLowerCase().trim();
+    if (zoneAliases[zoneKey]) {
+      result.toZone = zoneAliases[zoneKey]; // Assume call time zone is the target
+    }
   }
   
   // If we don't have explicit patterns, search for any timezone mentions
-  if (!result.fromZone && !result.toZone) {
+  if (!result.fromZone || !result.toZone) {
     for (let i = 0; i < parts.length; i++) {
       const currentPart = parts[i].toLowerCase();
       const nextPart = i < parts.length - 1 ? parts[i + 1].toLowerCase() : '';
       const combined = `${currentPart} ${nextPart}`.trim();
       
-      if (zoneAliases[currentPart] && !result.fromZone) {
-        result.fromZone = zoneAliases[currentPart];
-      } else if (zoneAliases[combined] && !result.fromZone) {
+      if (zoneAliases[currentPart] && !result.fromZone && !result.toZone) {
+        result.toZone = zoneAliases[currentPart]; // First mention is likely the target
+      } else if (zoneAliases[combined] && !result.fromZone && !result.toZone) {
+        result.toZone = zoneAliases[combined];
+        i++; // Skip the next part since we used it
+      } else if (zoneAliases[currentPart] && !result.fromZone && result.toZone) {
+        result.fromZone = zoneAliases[currentPart]; // Second mention is likely the source
+      } else if (zoneAliases[combined] && !result.fromZone && result.toZone) {
         result.fromZone = zoneAliases[combined];
         i++; // Skip the next part since we used it
       } else if (zoneAliases[currentPart] && result.fromZone && !result.toZone) {
@@ -144,6 +187,10 @@ const extractTime = (text: string): string | undefined => {
   // Format matched time
   if (timeMatch[3]) { // Has AM/PM
     return `${timeMatch[1]}:${timeMatch[2] || '00'} ${timeMatch[3]}`;
+  } else if (patternName === 'justHour' && timeMatch[2]) { // Just hour with AM/PM
+    return `${timeMatch[1]}:00 ${timeMatch[2]}`;
+  } else if (patternName === 'justHour') { // Just hour without AM/PM
+    return `${timeMatch[1]}:00`;
   } else { // 24 hour format or without AM/PM
     return `${timeMatch[1]}:${timeMatch[2] || '00'}`;
   }
@@ -194,6 +241,9 @@ export const parseTimeQuery = (text: string): ParsedQuery => {
   
   // Query is valid if we have at least a time and a timezone
   result.isValid = !!(result.time && (result.fromZone || result.toZone));
+  
+  // Debug
+  console.log("Parsed query:", result);
   
   return result;
 };

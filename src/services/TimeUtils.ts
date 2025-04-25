@@ -22,28 +22,52 @@ export interface ConvertedTime {
 export const timeZones: TimeZoneData[] = [
   { id: 'America/New_York', name: 'New York', offset: '-05:00', abbreviation: 'EST' },
   { id: 'America/Los_Angeles', name: 'Los Angeles', offset: '-08:00', abbreviation: 'PST' },
+  { id: 'America/Chicago', name: 'Chicago', offset: '-06:00', abbreviation: 'CST' },
+  { id: 'America/Denver', name: 'Denver', offset: '-07:00', abbreviation: 'MST' },
   { id: 'Europe/London', name: 'London', offset: '+00:00', abbreviation: 'GMT' },
+  { id: 'Europe/Paris', name: 'Paris', offset: '+01:00', abbreviation: 'CET' },
+  { id: 'Europe/Berlin', name: 'Berlin', offset: '+01:00', abbreviation: 'CET' },
   { id: 'Asia/Tokyo', name: 'Tokyo', offset: '+09:00', abbreviation: 'JST' },
   { id: 'Asia/Kolkata', name: 'India', offset: '+05:30', abbreviation: 'IST' },
-  { id: 'Australia/Sydney', name: 'Sydney', offset: '+11:00', abbreviation: 'AEDT' },
-  { id: 'Europe/Paris', name: 'Paris', offset: '+01:00', abbreviation: 'CET' },
   { id: 'Asia/Shanghai', name: 'China', offset: '+08:00', abbreviation: 'CST' },
-  { id: 'Europe/Berlin', name: 'Berlin', offset: '+01:00', abbreviation: 'CET' },
-  { id: 'America/Toronto', name: 'Toronto', offset: '-05:00', abbreviation: 'EST' },
   { id: 'Asia/Singapore', name: 'Singapore', offset: '+08:00', abbreviation: 'SGT' },
+  { id: 'Australia/Sydney', name: 'Sydney', offset: '+11:00', abbreviation: 'AEDT' },
+  { id: 'Australia/Melbourne', name: 'Melbourne', offset: '+11:00', abbreviation: 'AEDT' },
+  { id: 'Etc/UTC', name: 'UTC', offset: '+00:00', abbreviation: 'UTC' },
 ];
 
 // Find a timezone by various inputs (name, abbreviation, country)
 export const findTimeZone = (query: string): TimeZoneData | undefined => {
   const normalizedQuery = query.trim().toLowerCase();
   
-  // Try to find by ID, name, country or abbreviation
-  return timeZones.find(tz => 
+  console.log(`Searching for time zone: "${normalizedQuery}"`);
+  
+  // Try to find by exact ID first
+  const exactMatch = timeZones.find(tz => 
+    tz.id.toLowerCase() === normalizedQuery
+  );
+  
+  if (exactMatch) {
+    console.log(`Found exact match: ${exactMatch.id}`);
+    return exactMatch;
+  }
+  
+  // Try to find by partial match
+  const partialMatch = timeZones.find(tz => 
     tz.id.toLowerCase().includes(normalizedQuery) ||
     tz.name.toLowerCase().includes(normalizedQuery) ||
-    tz.abbreviation.toLowerCase().includes(normalizedQuery) ||
+    tz.abbreviation.toLowerCase() === normalizedQuery ||
     (tz.countryName?.toLowerCase().includes(normalizedQuery))
   );
+  
+  if (partialMatch) {
+    console.log(`Found partial match: ${partialMatch.id}`);
+    return partialMatch;
+  }
+  
+  // No match found
+  console.log(`No time zone found for query: "${normalizedQuery}"`);
+  return undefined;
 };
 
 // Format a date to a specific timezone
@@ -62,10 +86,12 @@ export const convertTime = (
   fromZoneId: string, 
   toZoneId: string
 ): ConvertedTime => {
+  console.log(`Converting time from ${fromZoneId} to ${toZoneId}`, date);
+  
   const fromZone = timeZones.find(tz => tz.id === fromZoneId) || timeZones[0];
   const toZone = timeZones.find(tz => tz.id === toZoneId) || timeZones[0];
   
-  // Convert the time to UTC first
+  // Convert the time from source timezone to UTC
   const utcTime = fromZonedTime(date, fromZoneId);
   
   // Then convert from UTC to target timezone
@@ -73,6 +99,12 @@ export const convertTime = (
   
   // Calculate the time difference in hours
   const timeGap = differenceInHours(targetTime, date);
+  
+  console.log(`Conversion result:`, {
+    fromTime: date.toISOString(),
+    toTime: targetTime.toISOString(),
+    timeGap
+  });
   
   return {
     fromZone,
