@@ -93,9 +93,11 @@ export const convertTime = (
   
   // Convert the time from source timezone to UTC
   const utcTime = fromZonedTime(date, fromZoneId);
+  console.log(`UTC time: ${utcTime.toISOString()}`);
   
   // Then convert from UTC to target timezone
   const targetTime = toZonedTime(utcTime, toZoneId);
+  console.log(`Target time: ${targetTime.toISOString()} in ${toZoneId}`);
   
   // Calculate the time difference in hours
   const timeGap = differenceInHours(targetTime, date);
@@ -118,23 +120,27 @@ export const convertTime = (
 // Get a range of working hours for visualization
 export const getWorkingHoursRange = (date: Date, timeZoneId: string) => {
   const hoursData = [];
-  const baseDate = toZonedTime(
-    fromZonedTime(date, timeZoneId),
-    timeZoneId
-  );
   
-  // Start at 6AM (typical working day start)
-  baseDate.setHours(6, 0, 0, 0);
+  // Create a date at the start of the working day in the target timezone
+  const localDate = toZonedTime(date, timeZoneId);
+  const baseDate = new Date(localDate);
+  baseDate.setHours(6, 0, 0, 0); // Start at 6 AM local time
+  
+  console.log(`Generating hours range for ${timeZoneId}, starting at ${baseDate.toISOString()}`);
   
   // Generate 15 hours (6AM to 9PM)
   for (let i = 0; i < 15; i++) {
-    const currentDate = addHours(baseDate, i);
+    const currentHour = addHours(baseDate, i);
+    const hourIn12Format = format(currentHour, 'h a');
+    
     hoursData.push({
-      hour: format(currentDate, 'h a'),
-      timestamp: currentDate.getTime(),
+      hour: hourIn12Format,
+      timestamp: currentHour.getTime(),
       isWorkingHour: i >= 3 && i <= 11, // 9AM to 5PM as working hours
+      rawHour: currentHour
     });
   }
   
+  console.log(`Generated ${hoursData.length} hours for ${timeZoneId}`);
   return hoursData;
 };

@@ -41,21 +41,30 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
   const myHours = getWorkingHoursRange(date, fromZoneId);
   const theirHours = getWorkingHoursRange(date, toZoneId);
   
-  // Prepare data for the chart
+  // Prepare data for the chart - properly align the hours
   const chartData = myHours.map((hourData, index) => {
     // Format the hour labels for better readability
     const fromTime = hourData.hour;
-    const toTime = theirHours[index]?.hour || 'Unknown';
+    // Find the corresponding hour in their timezone
+    const theirHourData = theirHours.find(h => 
+      Math.abs(h.timestamp - hourData.timestamp) < 1000 * 60 * 10 // Within 10 minutes
+    );
+    
+    const toTime = theirHourData?.hour || 'Unknown';
     
     return {
       hour: fromTime,
       from: hourData.isWorkingHour ? 1 : 0.5,
-      to: theirHours[index]?.isWorkingHour ? 1 : 0.5,
+      to: theirHourData?.isWorkingHour ? 1 : 0.5,
       fromTime,
       toTime,
-      overlapping: hourData.isWorkingHour && theirHours[index]?.isWorkingHour
+      overlapping: hourData.isWorkingHour && theirHourData?.isWorkingHour,
+      timestamp: hourData.timestamp
     };
   });
+  
+  // Sort data by timestamp to ensure correct ordering
+  chartData.sort((a, b) => a.timestamp - b.timestamp);
   
   // Calculate overlapping working hours
   const overlappingHours = chartData.filter(hour => hour.overlapping).length;

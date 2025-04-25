@@ -51,10 +51,10 @@ const Index: React.FC = () => {
       // Parse the time from the query (default to current time if not specified)
       let timeToConvert = new Date();
       if (parsedQuery.time) {
-        // This is a simplified approach; in a real app, you'd use a proper date parser
+        // Parse the time string
         const timeParts = parsedQuery.time.split(':');
         let hours = parseInt(timeParts[0], 10);
-        const minutes = parseInt(timeParts[1] || '0', 10);
+        const minutes = parseInt(timeParts[1]?.split(' ')[0] || '0', 10);
         
         // Handle AM/PM
         if (parsedQuery.time.toLowerCase().includes('pm') && hours < 12) {
@@ -66,8 +66,14 @@ const Index: React.FC = () => {
         timeToConvert.setHours(hours, minutes, 0, 0);
       }
       
+      console.log(`Converting time: ${timeToConvert.toISOString()} from ${fromZone.id} to ${toZone.id}`);
+      
       // Perform the conversion
       const result = convertTime(timeToConvert, fromZone.id, toZone.id);
+      
+      // Use the correct source/target identification based on query direction
+      const sourceZone = parsedQuery.isLocalToRemote ? fromZone : toZone;
+      const targetZone = parsedQuery.isLocalToRemote ? toZone : fromZone;
       
       // Update the state with the conversion results
       setTimeZones([
@@ -75,13 +81,13 @@ const Index: React.FC = () => {
           id: fromZone.id,
           name: fromZone.name,
           time: result.fromTime,
-          isSource: true
+          isSource: fromZone.id === sourceZone.id
         },
         {
           id: toZone.id,
           name: toZone.name,
           time: result.toTime,
-          isSource: false
+          isSource: toZone.id === sourceZone.id
         }
       ]);
       

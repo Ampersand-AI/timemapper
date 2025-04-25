@@ -1,3 +1,4 @@
+
 // Natural language parser for time zone conversion queries
 
 interface ParsedQuery {
@@ -7,6 +8,7 @@ interface ParsedQuery {
   date?: string;
   isValid: boolean;
   originalText: string;
+  isLocalToRemote: boolean; // Flag to indicate if query is local-to-remote conversion
 }
 
 // Common time zone aliases
@@ -88,24 +90,41 @@ const dayPatterns = {
 };
 
 // Extract time zones from user input
-const extractTimeZones = (text: string): { fromZone?: string; toZone?: string } => {
-  const result = { fromZone: undefined as string | undefined, toZone: undefined as string | undefined };
+const extractTimeZones = (text: string): { fromZone?: string; toZone?: string; isLocalToRemote: boolean } => {
+  const result = { 
+    fromZone: undefined as string | undefined, 
+    toZone: undefined as string | undefined,
+    isLocalToRemote: false
+  };
   const lowerText = text.toLowerCase();
-  const parts = lowerText.split(/\s+/);
   
   // Look for patterns like "in PST", "from EST to JST"
   const inPattern = /\bin\s+([a-z\s]+)\b/i;
   const fromToPattern = /\bfrom\s+([a-z\s]+)\s+to\s+([a-z\s]+)\b/i;
   
-  // Check for "I am in [zone]" pattern
+  // Check for "I am in [zone]" pattern - this indicates user's local time zone
   const iAmInPattern = /\bi(?:'m| am)\s+in\s+([a-z\s]+)\b/i;
   const iAmInMatch = text.match(iAmInPattern);
   if (iAmInMatch) {
     const zoneKey = iAmInMatch[1].toLowerCase().trim();
-    if (zoneAliases[zoneKey]) result.fromZone = zoneAliases[zoneKey];
+    if (zoneAliases[zoneKey]) {
+      result.fromZone = zoneAliases[zoneKey];
+      result.isLocalToRemote = true; // User is specifying their local timezone
+    }
   }
   
-  // Try from-to pattern
+  // Check for "call at X time [zone]" pattern - this indicates target time zone
+  const callPattern = /\b(?:call|meeting)(?:\s+(?:at|in|for))?\s+.*?\s+([a-z]{2,})\b/i;
+  const callMatch = text.match(callPattern);
+  if (callMatch) {
+    const zoneKey = callMatch[1].toLowerCase().trim();
+    if (zoneAliases[zoneKey]) {
+      result.toZone = zoneAliases[zoneKey]; 
+      result.isLocalToRemote = true; // Call time is in target timezone
+    }
+  }
+  
+  // Try from-to pattern (explicit conversion direction)
   const fromToMatch = text.match(fromToPattern);
   if (fromToMatch) {
     const fromKey = fromToMatch[1].toLowerCase().trim();
@@ -127,42 +146,28 @@ const extractTimeZones = (text: string): { fromZone?: string; toZone?: string } 
       if (result.fromZone) {
         result.toZone = zoneAliases[zoneKey];
       } else {
-        result.fromZone = zoneAliases[zoneKey]; 
+        result.toZone = zoneAliases[zoneKey]; 
       }
-    }
-  }
-  
-  // Check for "call at X time [zone]" pattern
-  const callPattern = /\bcall\s+(?:at|in|for)?\s+.*?\b([a-z]{3,4})\b/i;
-  const callMatch = text.match(callPattern);
-  if (callMatch) {
-    const zoneKey = callMatch[1].toLowerCase().trim();
-    if (zoneAliases[zoneKey]) {
-      result.toZone = zoneAliases[zoneKey]; // Assume call time zone is the target
     }
   }
   
   // If we don't have explicit patterns, search for any timezone mentions
   if (!result.fromZone || !result.toZone) {
+    const parts = lowerText.split(/\s+/);
     for (let i = 0; i < parts.length; i++) {
       const currentPart = parts[i].toLowerCase();
       const nextPart = i < parts.length - 1 ? parts[i + 1].toLowerCase() : '';
       const combined = `${currentPart} ${nextPart}`.trim();
       
-      if (zoneAliases[currentPart] && !result.fromZone && !result.toZone) {
-        result.toZone = zoneAliases[currentPart]; // First mention is likely the target
-      } else if (zoneAliases[combined] && !result.fromZone && !result.toZone) {
-        result.toZone = zoneAliases[combined];
-        i++; // Skip the next part since we used it
-      } else if (zoneAliases[currentPart] && !result.fromZone && result.toZone) {
-        result.fromZone = zoneAliases[currentPart]; // Second mention is likely the source
-      } else if (zoneAliases[combined] && !result.fromZone && result.toZone) {
-        result.fromZone = zoneAliases[combined];
-        i++; // Skip the next part since we used it
-      } else if (zoneAliases[currentPart] && result.fromZone && !result.toZone) {
+      if (zoneAliases[currentPart] && !result.toZone) {
         result.toZone = zoneAliases[currentPart];
-      } else if (zoneAliases[combined] && result.fromZone && !result.toZone) {
+      } else if (zoneAliases[combined] && !result.toZone) {
         result.toZone = zoneAliases[combined];
+        i++; // Skip the next part since we used it
+      } else if (zoneAliases[currentPart] && result.toZone && !result.fromZone) {
+        result.fromZone = zoneAliases[currentPart];
+      } else if (zoneAliases[combined] && result.toZone && !result.fromZone) {
+        result.fromZone = zoneAliases[combined];
         i++; // Skip the next part since we used it
       }
     }
@@ -174,13 +179,13 @@ const extractTimeZones = (text: string): { fromZone?: string; toZone?: string } 
 // Extract time from user input
 const extractTime = (text: string): string | undefined => {
   let timeMatch = null;
-  let matchedPatternName = ''; // Add this variable to track which pattern was matched
+  let matchedPatternName = ''; // Track which pattern was matched
   
   // Try all time patterns
   for (const [patternName, pattern] of Object.entries(timePatterns)) {
     timeMatch = text.match(pattern);
     if (timeMatch) {
-      matchedPatternName = patternName; // Store the name of the matched pattern
+      matchedPatternName = patternName;
       break;
     }
   }
@@ -229,12 +234,14 @@ export const parseTimeQuery = (text: string): ParsedQuery => {
   const result: ParsedQuery = {
     isValid: false,
     originalText: text,
+    isLocalToRemote: false
   };
   
   // Extract time zones
   const zones = extractTimeZones(lowerText);
   result.fromZone = zones.fromZone;
   result.toZone = zones.toZone;
+  result.isLocalToRemote = zones.isLocalToRemote;
   
   // Extract time
   result.time = extractTime(lowerText);
