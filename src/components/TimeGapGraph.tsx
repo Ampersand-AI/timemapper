@@ -46,13 +46,16 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
     const myHours = getWorkingHoursRange(date, fromZoneId);
     const theirHours = getWorkingHoursRange(date, toZoneId);
     
-    // Calculate exact time difference by creating actual date objects
+    // Calculate exact time difference
     const now = new Date();
-    const fromZoneDate = new Date(formatInTimeZone(now, fromZoneId, "yyyy-MM-dd'T'HH:mm:ss"));
-    const toZoneDate = new Date(formatInTimeZone(now, toZoneId, "yyyy-MM-dd'T'HH:mm:ss"));
+    const fromTimeStr = formatInTimeZone(now, fromZoneId, "yyyy-MM-dd'T'HH:mm:ssXXX");
+    const toTimeStr = formatInTimeZone(now, toZoneId, "yyyy-MM-dd'T'HH:mm:ssXXX");
     
-    // Calculate difference in hours (will be positive if toZone is ahead, negative if behind)
-    const exactTimeDiff = Math.round(differenceInHours(toZoneDate, fromZoneDate));
+    const fromDateTime = new Date(fromTimeStr);
+    const toDateTime = new Date(toTimeStr);
+    
+    // Calculate the exact time difference in hours
+    const exactTimeDiff = differenceInHours(toDateTime, fromDateTime);
     
     const chartData = myHours.map(myHour => {
       const myWorkingHour = myHour.isWorkingHour ? 1 : 0.3;
