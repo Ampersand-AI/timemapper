@@ -1,9 +1,9 @@
-
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getWorkingHoursRange } from '@/services/TimeUtils';
 import { Clock } from 'lucide-react';
-import { differenceInHours, formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
+import { differenceInHours } from 'date-fns';
 
 interface TimeGapGraphProps {
   fromZoneId: string;
