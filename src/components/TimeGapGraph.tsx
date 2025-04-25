@@ -2,6 +2,7 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getWorkingHoursRange } from '@/services/TimeUtils';
+import { Clock } from 'lucide-react';
 
 interface TimeGapGraphProps {
   fromZoneId: string;
@@ -37,20 +38,30 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date }) => {
+  console.log(`Rendering TimeGapGraph with fromZoneId=${fromZoneId}, toZoneId=${toZoneId}`);
+  
   // Get the working hours data for both time zones
   const myHours = getWorkingHoursRange(date, fromZoneId);
   const theirHours = getWorkingHoursRange(date, toZoneId);
   
+  console.log('My hours:', myHours);
+  console.log('Their hours:', theirHours);
+  
   // Prepare data for the chart - properly align the hours
-  const chartData = myHours.map((hourData, index) => {
+  const chartData = myHours.map((hourData) => {
     // Format the hour labels for better readability
     const fromTime = hourData.hour;
+    
     // Find the corresponding hour in their timezone
+    // This matches up the timestamp to find the equivalent hour
     const theirHourData = theirHours.find(h => 
-      Math.abs(h.timestamp - hourData.timestamp) < 1000 * 60 * 10 // Within 10 minutes
+      Math.abs(new Date(h.timestamp).getUTCHours() - new Date(hourData.timestamp).getUTCHours()) < 1
     );
     
     const toTime = theirHourData?.hour || 'Unknown';
+    
+    // Check if this hour is within both working hours
+    const overlapping = hourData.isWorkingHour && theirHourData?.isWorkingHour;
     
     return {
       hour: fromTime,
@@ -58,7 +69,7 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
       to: theirHourData?.isWorkingHour ? 1 : 0.5,
       fromTime,
       toTime,
-      overlapping: hourData.isWorkingHour && theirHourData?.isWorkingHour,
+      overlapping,
       timestamp: hourData.timestamp
     };
   });
@@ -71,7 +82,10 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
   
   return (
     <div className="neo-raised p-4 mt-6 text-white">
-      <h3 className="text-lg font-medium mb-2">Time Overlap Analysis</h3>
+      <h3 className="text-lg font-medium mb-2 flex items-center">
+        <Clock className="mr-2" size={20} />
+        Time Overlap Analysis
+      </h3>
       
       <div className="h-64 mt-4">
         <ResponsiveContainer width="100%" height="100%">

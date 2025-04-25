@@ -18,7 +18,7 @@ export interface ConvertedTime {
   timeGap: number;
 }
 
-// Simplified timezone database with common zones
+// Expanded timezone database with common zones
 export const timeZones: TimeZoneData[] = [
   { id: 'America/New_York', name: 'New York', offset: '-05:00', abbreviation: 'EST' },
   { id: 'America/Los_Angeles', name: 'Los Angeles', offset: '-08:00', abbreviation: 'PST' },
@@ -72,7 +72,15 @@ export const findTimeZone = (query: string): TimeZoneData | undefined => {
 
 // Format a date to a specific timezone
 export const formatToTimeZone = (date: Date, timeZoneId: string, formatString: string = 'h:mm a') => {
-  return formatInTimeZone(date, timeZoneId, formatString);
+  try {
+    console.log(`Formatting ${date.toISOString()} to ${timeZoneId} with format ${formatString}`);
+    const formatted = formatInTimeZone(date, timeZoneId, formatString);
+    console.log(`Formatted result: ${formatted}`);
+    return formatted;
+  } catch (error) {
+    console.error(`Error formatting time to zone ${timeZoneId}:`, error);
+    return 'Error';
+  }
 };
 
 // Get the current time in a specific timezone
@@ -86,35 +94,39 @@ export const convertTime = (
   fromZoneId: string, 
   toZoneId: string
 ): ConvertedTime => {
-  console.log(`Converting time from ${fromZoneId} to ${toZoneId}`, date);
+  console.log(`Converting time from ${fromZoneId} to ${toZoneId}`, date.toISOString());
   
   const fromZone = timeZones.find(tz => tz.id === fromZoneId) || timeZones[0];
   const toZone = timeZones.find(tz => tz.id === toZoneId) || timeZones[0];
   
-  // Convert the time from source timezone to UTC
-  const utcTime = fromZonedTime(date, fromZoneId);
-  console.log(`UTC time: ${utcTime.toISOString()}`);
+  console.log(`Source zone: ${fromZone.name} (${fromZone.id})`);
+  console.log(`Target zone: ${toZone.name} (${toZone.id})`);
   
-  // Then convert from UTC to target timezone
-  const targetTime = toZonedTime(utcTime, toZoneId);
-  console.log(`Target time: ${targetTime.toISOString()} in ${toZoneId}`);
-  
-  // Calculate the time difference in hours
-  const timeGap = differenceInHours(targetTime, date);
-  
-  console.log(`Conversion result:`, {
-    fromTime: date.toISOString(),
-    toTime: targetTime.toISOString(),
-    timeGap
-  });
-  
-  return {
-    fromZone,
-    toZone,
-    fromTime: date,
-    toTime: targetTime,
-    timeGap
-  };
+  try {
+    // First convert the input date to the source timezone to ensure it's correct
+    // This fixes the issue where the input date might not be in the source timezone
+    const sourceDate = toZonedTime(date, fromZoneId);
+    console.log(`Source date in ${fromZoneId}: ${sourceDate.toISOString()}`);
+    
+    // Then convert from source timezone to target timezone
+    const targetDate = toZonedTime(sourceDate, toZoneId);
+    console.log(`Target date in ${toZoneId}: ${targetDate.toISOString()}`);
+    
+    // Calculate the time difference in hours
+    const timeGap = differenceInHours(targetDate, sourceDate);
+    console.log(`Time gap between zones: ${timeGap} hours`);
+    
+    return {
+      fromZone,
+      toZone,
+      fromTime: sourceDate,
+      toTime: targetDate,
+      timeGap
+    };
+  } catch (error) {
+    console.error('Error in conversion:', error);
+    throw new Error(`Failed to convert time: ${error}`);
+  }
 };
 
 // Get a range of working hours for visualization
@@ -131,7 +143,7 @@ export const getWorkingHoursRange = (date: Date, timeZoneId: string) => {
   // Generate 15 hours (6AM to 9PM)
   for (let i = 0; i < 15; i++) {
     const currentHour = addHours(baseDate, i);
-    const hourIn12Format = format(currentHour, 'h a');
+    const hourIn12Format = format(currentHour, 'h a'); // Use 12-hour format with AM/PM
     
     hoursData.push({
       hour: hourIn12Format,

@@ -5,7 +5,7 @@ import TimeTiles, { TimeZoneInfo } from '@/components/TimeTiles';
 import TimeGapGraph from '@/components/TimeGapGraph';
 import ContextPanel from '@/components/ContextPanel';
 import { parseTimeQuery } from '@/services/ChatParser';
-import { findTimeZone, convertTime } from '@/services/TimeUtils';
+import { findTimeZone, convertTime, getCurrentTimeInZone } from '@/services/TimeUtils';
 import { toast } from '@/hooks/use-toast';
 
 const Index: React.FC = () => {
@@ -30,6 +30,8 @@ const Index: React.FC = () => {
     }
     
     try {
+      console.log("Parsed query:", parsedQuery);
+      
       // Find time zones based on the query
       const fromZone = parsedQuery.fromZone 
         ? findTimeZone(parsedQuery.fromZone)
@@ -47,6 +49,8 @@ const Index: React.FC = () => {
         });
         return;
       }
+      
+      console.log("Converting from zone:", fromZone.id, "to zone:", toZone.id);
       
       // Parse the time from the query (default to current time if not specified)
       let timeToConvert = new Date();
@@ -68,32 +72,47 @@ const Index: React.FC = () => {
       
       console.log(`Converting time: ${timeToConvert.toISOString()} from ${fromZone.id} to ${toZone.id}`);
       
-      // Perform the conversion
-      const result = convertTime(timeToConvert, fromZone.id, toZone.id);
+      // Determine which is the source time zone (user's time) and which is the target
+      let sourceZoneId, targetZoneId;
       
-      // Use the correct source/target identification based on query direction
-      const sourceZone = parsedQuery.isLocalToRemote ? fromZone : toZone;
-      const targetZone = parsedQuery.isLocalToRemote ? toZone : fromZone;
+      if (parsedQuery.isLocalToRemote) {
+        // User specified their local time zone (e.g., "I am in India")
+        sourceZoneId = fromZone.id;
+        targetZoneId = toZone.id;
+        console.log("Local to remote conversion. Source:", sourceZoneId, "Target:", targetZoneId);
+      } else {
+        // Default case - we're converting from the first mentioned to the second mentioned
+        sourceZoneId = fromZone.id;
+        targetZoneId = toZone.id;
+        console.log("Standard conversion. Source:", sourceZoneId, "Target:", targetZoneId);
+      }
       
-      // Update the state with the conversion results
+      // Perform the conversion correctly based on source and target
+      const result = convertTime(timeToConvert, sourceZoneId, targetZoneId);
+      
+      console.log("Conversion result:", result);
+      
+      // Update the state with the conversion results - ensure correct mapping of source/target
       setTimeZones([
         {
-          id: fromZone.id,
+          id: sourceZoneId,
           name: fromZone.name,
-          time: result.fromTime,
-          isSource: fromZone.id === sourceZone.id
+          time: timeToConvert, // Original input time in source zone
+          isSource: true
         },
         {
-          id: toZone.id,
+          id: targetZoneId,
           name: toZone.name,
-          time: result.toTime,
-          isSource: toZone.id === sourceZone.id
+          time: result.toTime, // Converted time in target zone
+          isSource: false
         }
       ]);
       
+      console.log("Time zones set:", timeZones);
+      
       // Set state for graph and context panel
-      setFromZoneId(fromZone.id);
-      setToZoneId(toZone.id);
+      setFromZoneId(sourceZoneId);
+      setToZoneId(targetZoneId);
       setScheduledTime(timeToConvert);
       setShowGraph(true);
       setShowContext(true);
