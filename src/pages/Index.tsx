@@ -15,7 +15,7 @@ import {
 import { formatInTimeZone } from 'date-fns-tz';
 import { toast } from '@/hooks/use-toast';
 import SettingsButton from '@/components/SettingsButton';
-import GeminiService from '@/services/GeminiService';
+import LlamaService from '@/services/LlamaService';
 
 const Index: React.FC = () => {
   const [timeZones, setTimeZones] = useState<TimeZoneInfo[]>([]);
@@ -47,8 +47,6 @@ const Index: React.FC = () => {
             ...zone,
             id: newZone.id,
             name: newZone.name,
-            offset: newZone.offset,
-            abbreviation: newZone.abbreviation,
             time: convertTime(zone.time, oldZoneId, newZoneId).toTime,
             isSource
           };
@@ -89,7 +87,7 @@ const Index: React.FC = () => {
       setIsDetectingLocation(true);
       try {
         // Try to get user's location
-        const coords = await getUserGeolocation();
+        const coords = await getUserGeolocation().catch(() => null);
         
         let detectedTimezone;
         if (coords) {
@@ -136,8 +134,7 @@ const Index: React.FC = () => {
           setTimeZones([{
             id: detectedZone.id,
             name: detectedZone.name,
-            offset: detectedZone.offset,
-            abbreviation: detectedZone.abbreviation,
+            offset: detectedZone.offset, // Make sure to include the offset
             time: now,
             isSource: true
           }]);
@@ -158,8 +155,7 @@ const Index: React.FC = () => {
           setTimeZones([{
             id: defaultZone.id,
             name: defaultZone.name,
-            offset: defaultZone.offset,
-            abbreviation: defaultZone.abbreviation,
+            offset: defaultZone.offset, // Make sure to include the offset
             time: new Date(),
             isSource: true
           }]);
@@ -177,29 +173,24 @@ const Index: React.FC = () => {
     setIsDetectingLocation(true);
     
     try {
-      // Reset the display before processing a new query
-      setShowGraph(false);
-      setShowContext(false);
-      
-      // Keep track of user's timezone card
-      const userTimeZoneCard = timeZones.find(tz => tz.isSource);
-      
-      // Try to use Gemini for enhanced query parsing if available
-      if (GeminiService.hasApiKey()) {
-        const geminiResult = await GeminiService.verifyTimeQuery(query);
+      // Try to use Llama for enhanced query parsing if available
+      if (LlamaService.hasApiKey()) {
+        const llamaResult = await LlamaService.verifyTimeQuery(query);
         
-        if (geminiResult.isValid) {
-          // Use the enhanced data from Gemini
-          const toZoneStr = geminiResult.toZone;
-          const timeStr = geminiResult.time;
+        if (llamaResult.isValid) {
+          // Use the enhanced data from Llama
+          const fromZoneStr = llamaResult.fromZone || userTimeZone || 'America/New_York';
+          const toZoneStr = llamaResult.toZone;
+          const timeStr = llamaResult.time;
           
-          console.log("Gemini parsed query:", geminiResult);
+          console.log("Llama parsed query:", llamaResult);
           
-          // Find target timezone based on the query
+          // Find time zones based on the query
+          const fromZone = findTimeZone(fromZoneStr);
           const toZone = toZoneStr ? findTimeZone(toZoneStr) : null;
           
-          if (!toZone) {
-            throw new Error(`Could not find target timezone: ${toZoneStr}`);
+          if (!fromZone) {
+            throw new Error(`Could not find source timezone: ${fromZoneStr}`);
           }
           
           // Parse the time from the query (default to current time if not specified)
@@ -223,20 +214,20 @@ const Index: React.FC = () => {
             }
           }
           
-          // Always include user's timezone card along with the searched timezone
-          processTimeZones(
-            findTimeZone(userTimeZone || 'America/New_York'),
-            toZone,
-            timeToConvert,
-            geminiResult.isValid
-          );
+          // If only one timezone was specified, use the user's timezone for the other
+          if (toZone) {
+            processTimeZones(fromZone, toZone, timeToConvert, llamaResult.isValid);
+          } else {
+            // If only a single location or time was specified, just show that timezone
+            displaySingleTimezone(fromZone, timeToConvert);
+          }
           
           setIsDetectingLocation(false);
           return;
         }
       }
       
-      // Fallback to basic parsing if Gemini is not available or failed
+      // Fallback to basic parsing if Llama is not available or failed
       const parsedQuery = parseTimeQuery(query);
       
       if (!parsedQuery.isValid) {
@@ -245,9 +236,8 @@ const Index: React.FC = () => {
         const matchedZone = findTimeZone(possibleLocation);
         
         if (matchedZone) {
-          // Display both user's timezone and the matched timezone
-          const userZone = findTimeZone(userTimeZone || 'America/New_York');
-          processTimeZones(userZone, matchedZone, new Date(), true);
+          // Just display this single timezone
+          displaySingleTimezone(matchedZone, new Date());
           setIsDetectingLocation(false);
           return;
         }
@@ -263,17 +253,18 @@ const Index: React.FC = () => {
       
       console.log("Basic parser result:", parsedQuery);
       
-      // Find target timezone based on the query
+      // Find time zones based on the query
+      const fromZone = parsedQuery.fromZone 
+        ? findTimeZone(parsedQuery.fromZone)
+        : findTimeZone(userTimeZone || 'America/New_York'); // Use detected timezone or default
+      
       const toZone = parsedQuery.toZone 
         ? findTimeZone(parsedQuery.toZone)
         : null;
       
-      if (!toZone) {
-        throw new Error(`Could not find target timezone: ${parsedQuery.toZone}`);
+      if (!fromZone) {
+        throw new Error(`Could not find source timezone: ${parsedQuery.fromZone}`);
       }
-      
-      // Always use user's timezone as source
-      const userZone = findTimeZone(userTimeZone || 'America/New_York');
       
       // Parse the time from the query (default to current time if not specified)
       let timeToConvert = new Date();
@@ -293,7 +284,12 @@ const Index: React.FC = () => {
         timeToConvert.setHours(hours, minutes, 0, 0);
       }
       
-      processTimeZones(userZone, toZone, timeToConvert, parsedQuery.isValid);
+      if (toZone) {
+        processTimeZones(fromZone, toZone, timeToConvert, parsedQuery.isValid);
+      } else {
+        // If only a single location or time was specified, just show that timezone
+        displaySingleTimezone(fromZone, timeToConvert);
+      }
       
     } catch (error) {
       console.error('Error processing query:', error);
@@ -318,8 +314,8 @@ const Index: React.FC = () => {
     const sourceTimeZone = {
       id: fromZone.id,
       name: fromZone.name,
-      offset: fromZone.offset,
-      abbreviation: fromZone.abbreviation,
+      offset: fromZone.offset, // Include offset
+      abbreviation: fromZone.abbreviation, // Include abbreviation
       time: result.fromTime,
       isSource: true
     };
@@ -328,13 +324,13 @@ const Index: React.FC = () => {
     const targetTimeZone = {
       id: toZone.id,
       name: toZone.name,
-      offset: toZone.offset,
-      abbreviation: toZone.abbreviation,
+      offset: toZone.offset, // Include offset
+      abbreviation: toZone.abbreviation, // Include abbreviation
       time: result.toTime,
       isSource: false
     };
     
-    // Update the timezones - always limit to two time windows
+    // Update the timezones
     setTimeZones([sourceTimeZone, targetTimeZone]);
     
     // Set state for graph and context panel
@@ -356,8 +352,8 @@ const Index: React.FC = () => {
     setTimeZones([{
       id: zone.id,
       name: zone.name,
-      offset: zone.offset,
-      abbreviation: zone.abbreviation,
+      offset: zone.offset, // Include offset
+      abbreviation: zone.abbreviation, // Include abbreviation
       time: getCurrentTimeInZone(zone.id),
       isSource: true
     }]);
