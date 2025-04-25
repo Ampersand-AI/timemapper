@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import VoiceInputService from '@/services/VoiceInput';
 import { parseTimeQuery } from '@/services/ChatParser';
+import OpenAIService from '@/services/OpenAIService';
 import LlamaService from '@/services/LlamaService';
 
 interface TimeInputProps {
@@ -55,14 +56,29 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     setIsValidating(true);
 
     try {
-      const result = LlamaService.hasApiKey() 
-        ? await LlamaService.verifyTimeQuery(query)
-        : { isValid: parseTimeQuery(query).isValid };
+      // First try LlamaService if available
+      let result = { isValid: false };
       
-      if (!result.isValid && LlamaService.hasApiKey()) {
+      if (LlamaService.hasApiKey()) {
+        result = await LlamaService.verifyTimeQuery(query);
+      } else if (OpenAIService.hasApiKey()) {
+        // Fallback to OpenAI if Llama is not available
+        result = await OpenAIService.verifyTimeQuery(query);
+      } else {
+        // Fallback to basic parsing if no AI services are available
+        result = { isValid: parseTimeQuery(query).isValid };
+      }
+      
+      if (!result.isValid && (LlamaService.hasApiKey() || OpenAIService.hasApiKey())) {
         // Let's try once more by reformulating as a time query
         const enhancedQuery = `What time is it in ${query}?`;
-        const enhancedResult = await LlamaService.verifyTimeQuery(enhancedQuery);
+        
+        let enhancedResult = { isValid: false };
+        if (LlamaService.hasApiKey()) {
+          enhancedResult = await LlamaService.verifyTimeQuery(enhancedQuery);
+        } else if (OpenAIService.hasApiKey()) {
+          enhancedResult = await OpenAIService.verifyTimeQuery(enhancedQuery);
+        }
         
         if (enhancedResult.isValid) {
           // Pass the enhanced query to parent component
@@ -144,10 +160,16 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             }
             
             // Only use AI validation if basic validation fails
-            if (LlamaService.hasApiKey()) {
+            if (LlamaService.hasApiKey() || OpenAIService.hasApiKey()) {
               try {
                 setIsValidating(true);
-                const result = await LlamaService.verifyTimeQuery(transcript);
+                let result = { isValid: false };
+                
+                if (LlamaService.hasApiKey()) {
+                  result = await LlamaService.verifyTimeQuery(transcript);
+                } else if (OpenAIService.hasApiKey()) {
+                  result = await OpenAIService.verifyTimeQuery(transcript);
+                }
                 
                 if (result.isValid) {
                   // Auto-submit if query is valid

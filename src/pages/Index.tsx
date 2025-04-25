@@ -15,7 +15,7 @@ import {
 import { formatInTimeZone } from 'date-fns-tz';
 import { toast } from '@/hooks/use-toast';
 import SettingsButton from '@/components/SettingsButton';
-import GeminiService from '@/services/GeminiService';
+import OpenAIService from '@/services/OpenAIService';
 
 const Index: React.FC = () => {
   const [timeZones, setTimeZones] = useState<TimeZoneInfo[]>([]);
@@ -83,7 +83,7 @@ const Index: React.FC = () => {
     }
   };
   
-  // Auto-detect user's timezone on component mount - FIXED
+  // Auto-detect user's timezone on component mount
   useEffect(() => {
     async function detectUserLocation() {
       setIsDetectingLocation(true);
@@ -212,16 +212,16 @@ const Index: React.FC = () => {
       // Keep track of user's timezone card
       const userTimeZoneCard = timeZones.find(tz => tz.isSource);
       
-      // Try to use Gemini for enhanced query parsing if available
-      if (GeminiService.hasApiKey()) {
-        const geminiResult = await GeminiService.verifyTimeQuery(query);
+      // Try to use OpenAI for enhanced query parsing if available
+      if (OpenAIService.hasApiKey()) {
+        const aiResult = await OpenAIService.verifyTimeQuery(query);
         
-        if (geminiResult.isValid) {
-          // Use the enhanced data from Gemini
-          const toZoneStr = geminiResult.toZone;
-          const timeStr = geminiResult.time;
+        if (aiResult.isValid) {
+          // Use the enhanced data from OpenAI
+          const toZoneStr = aiResult.toZone;
+          const timeStr = aiResult.time;
           
-          console.log("Gemini parsed query:", geminiResult);
+          console.log("OpenAI parsed query:", aiResult);
           
           // Find target timezone based on the query
           const toZone = toZoneStr ? findTimeZone(toZoneStr) : null;
@@ -256,7 +256,7 @@ const Index: React.FC = () => {
             findTimeZone(userTimeZone || 'America/New_York'),
             toZone,
             timeToConvert,
-            geminiResult.isValid
+            aiResult.isValid
           );
           
           setIsDetectingLocation(false);
@@ -264,7 +264,7 @@ const Index: React.FC = () => {
         }
       }
       
-      // Fallback to basic parsing if Gemini is not available or failed
+      // Fallback to basic parsing if OpenAI is not available or failed
       const parsedQuery = parseTimeQuery(query);
       
       if (!parsedQuery.isValid) {
