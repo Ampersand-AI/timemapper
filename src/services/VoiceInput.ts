@@ -32,8 +32,8 @@ interface SpeechRecognitionResultList {
 // Global augmentation for Window interface
 declare global {
   interface Window {
-    SpeechRecognition?: typeof SpeechRecognition;
-    webkitSpeechRecognition?: typeof SpeechRecognition;
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
   }
 }
 
@@ -42,7 +42,7 @@ type RecognitionResultHandler = (transcript: string, isFinal: boolean) => void;
 type RecognitionErrorHandler = (error: string) => void;
 
 class VoiceInputService {
-  private recognition: any = null;
+  private recognition: SpeechRecognition | null = null;
   private isSupported = false;
   private isListening = false;
 
@@ -50,9 +50,9 @@ class VoiceInputService {
     this.isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
     
     if (this.isSupported) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        this.recognition = new SpeechRecognition();
+      const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognitionClass) {
+        this.recognition = new SpeechRecognitionClass();
         this.setupRecognition();
       }
     }
