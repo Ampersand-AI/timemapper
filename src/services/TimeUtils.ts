@@ -86,16 +86,17 @@ export const formatToTimeZone = (date: Date, timeZoneId: string, formatString: s
 
 // Get the current time in a specific timezone
 export const getCurrentTimeInZone = (timeZoneId: string): Date => {
-  return toZonedTime(new Date(), timeZoneId);
+  const now = new Date();
+  return toZonedTime(now, timeZoneId);
 };
 
 // Convert a time from one timezone to another
 export const convertTime = (
-  date: Date, 
+  sourceTime: Date, 
   fromZoneId: string, 
   toZoneId: string
 ): ConvertedTime => {
-  console.log(`Converting time from ${fromZoneId} to ${toZoneId}`, date.toISOString());
+  console.log(`Converting time from ${fromZoneId} to ${toZoneId}`, sourceTime.toISOString());
   
   const fromZone = timeZones.find(tz => tz.id === fromZoneId) || timeZones[0];
   const toZone = timeZones.find(tz => tz.id === toZoneId) || timeZones[0];
@@ -104,22 +105,28 @@ export const convertTime = (
   console.log(`Target zone: ${toZone.name} (${toZone.id})`);
   
   try {
-    // First convert the input date to the source timezone to ensure it's correct
-    const sourceDate = toZonedTime(date, fromZoneId);
-    console.log(`Source date in ${fromZoneId}: ${sourceDate.toISOString()}`);
+    // Create a new Date object for the time
+    const utcTime = new Date(sourceTime);
     
-    // Then convert from source timezone to target timezone
-    const targetDate = toZonedTime(date, toZoneId);
-    console.log(`Target date in ${toZoneId}: ${targetDate.toISOString()}`);
+    // Get the source time correctly formatted in its timezone
+    const sourceZonedTime = toZonedTime(utcTime, fromZoneId);
+    console.log(`Source zoned time: ${sourceZonedTime.toISOString()}`);
+    
+    // Convert to target timezone
+    const targetZonedTime = formatInTimeZone(utcTime, toZoneId, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    console.log(`Target formatted: ${targetZonedTime}`);
+    
+    const targetDate = new Date(targetZonedTime);
+    console.log(`Target date: ${targetDate.toISOString()}`);
     
     // Calculate the time difference in hours
-    const timeGap = differenceInHours(targetDate, sourceDate);
+    const timeGap = differenceInHours(targetDate, sourceZonedTime);
     console.log(`Time gap between zones: ${timeGap} hours`);
     
     return {
       fromZone,
       toZone,
-      fromTime: sourceDate,
+      fromTime: sourceZonedTime,
       toTime: targetDate,
       timeGap
     };
@@ -133,22 +140,28 @@ export const convertTime = (
 export const getWorkingHoursRange = (date: Date, timeZoneId: string) => {
   const hoursData = [];
   
+  // Get current date in the specified timezone
+  const zonedDate = toZonedTime(date, timeZoneId);
+  console.log(`Zoned date for ${timeZoneId}: ${zonedDate.toISOString()}`);
+  
   // Create a date at the start of the working day in the target timezone
-  const localDate = toZonedTime(date, timeZoneId);
-  const baseDate = new Date(localDate);
-  baseDate.setHours(6, 0, 0, 0); // Start at 6 AM local time
+  const baseDate = new Date(zonedDate);
+  baseDate.setHours(0, 0, 0, 0); // Start at midnight local time
   
-  console.log(`Generating hours range for ${timeZoneId}, starting at ${baseDate.toISOString()}`);
+  console.log(`Base date for ${timeZoneId}: ${baseDate.toISOString()}`);
   
-  // Generate 15 hours (6AM to 9PM)
-  for (let i = 0; i < 15; i++) {
+  // Generate 24 hours for a full day
+  for (let i = 0; i < 24; i++) {
     const currentHour = addHours(baseDate, i);
-    const hourIn12Format = format(currentHour, 'h a'); // Use 12-hour format with AM/PM
+    const hourIn12Format = formatInTimeZone(currentHour, timeZoneId, 'h a'); // 12-hour format with AM/PM
+    
+    // Convert the hour to its true timestamp
+    const hourTimestamp = currentHour.getTime();
     
     hoursData.push({
       hour: hourIn12Format,
-      timestamp: currentHour.getTime(),
-      isWorkingHour: i >= 3 && i <= 11, // 9AM to 5PM as working hours (indices 3-11 representing hours 9-5)
+      timestamp: hourTimestamp,
+      isWorkingHour: i >= 9 && i <= 17, // 9AM to 5PM as working hours
       rawHour: currentHour
     });
   }

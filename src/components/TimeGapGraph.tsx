@@ -47,25 +47,41 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
   console.log('My hours:', myHours);
   console.log('Their hours:', theirHours);
   
-  // Prepare data for the chart - properly align the hours based on timestamps
-  const chartData = myHours.map((hourData) => {
-    const fromTime = hourData.hour;
-    const timestamp = hourData.timestamp;
-    
-    // Find the corresponding hour in their timezone by matching closest timestamp
-    const theirHourData = theirHours.find(h => {
-      return Math.abs(h.timestamp - hourData.timestamp) < 3600000; // Within 1 hour (in milliseconds)
+  // Build a mapping between timestamps
+  const hourPairs = myHours.map(myHour => {
+    // Find the corresponding "their" hour that matches the same global time
+    const theirHour = theirHours.find(h => {
+      return Math.abs(h.timestamp - myHour.timestamp) < 60000; // Within 1 minute
     });
     
-    const toTime = theirHourData?.hour || 'Unknown';
+    return {
+      myHour,
+      theirHour
+    };
+  });
+  
+  // Prepare data for the chart
+  const chartData = myHours.map((hourData, index) => {
+    // Find the corresponding "their" hour
+    const theirHourData = theirHours.find(h => {
+      return new Date(h.timestamp).getUTCHours() === new Date(hourData.timestamp).getUTCHours();
+    });
+    
+    const fromTime = hourData.hour;
+    // Get "their" hour that corresponds to this "my" hour timestamp
+    const matchedTheirHour = theirHours.find(h => {
+      return Math.abs(h.timestamp - hourData.timestamp) < 3600000; // Within an hour
+    });
+    
+    const toTime = matchedTheirHour ? matchedTheirHour.hour : 'Unknown';
     
     // Check if this hour is within both working hours
-    const overlapping = hourData.isWorkingHour && (theirHourData?.isWorkingHour || false);
+    const overlapping = hourData.isWorkingHour && (matchedTheirHour?.isWorkingHour || false);
     
     return {
       hour: fromTime,
-      from: hourData.isWorkingHour ? 1 : 0.5,
-      to: theirHourData?.isWorkingHour ? 1 : 0.5,
+      from: hourData.isWorkingHour ? 1 : 0.3,
+      to: matchedTheirHour?.isWorkingHour ? 1 : 0.3,
       fromTime,
       toTime,
       overlapping,
@@ -73,11 +89,19 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
     };
   });
   
-  // Sort data by timestamp to ensure correct ordering
-  chartData.sort((a, b) => a.timestamp - b.timestamp);
-  
   // Calculate overlapping working hours
-  const overlappingHours = chartData.filter(hour => hour.overlapping).length;
+  let overlappingHours = 0;
+  myHours.forEach(myHour => {
+    if (myHour.isWorkingHour) {
+      // Find if there's a matching theirHour at the same timestamp that's also a working hour
+      const matchingTheirHour = theirHours.find(h => 
+        Math.abs(h.timestamp - myHour.timestamp) < 3600000 && h.isWorkingHour
+      );
+      if (matchingTheirHour) {
+        overlappingHours++;
+      }
+    }
+  });
   
   return (
     <div className="neo-raised p-4 mt-6 text-white">

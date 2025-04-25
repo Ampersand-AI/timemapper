@@ -7,6 +7,7 @@ import ContextPanel from '@/components/ContextPanel';
 import { parseTimeQuery } from '@/services/ChatParser';
 import { findTimeZone, convertTime, getCurrentTimeInZone, timeZones } from '@/services/TimeUtils';
 import { toast } from '@/hooks/use-toast';
+import SettingsButton from '@/components/SettingsButton';
 
 const Index: React.FC = () => {
   const [timeZones, setTimeZones] = useState<TimeZoneInfo[]>([]);
@@ -98,11 +99,7 @@ const Index: React.FC = () => {
         timeToConvert.setHours(hours, minutes, 0, 0);
       }
       
-      console.log(`Converting time: ${timeToConvert.toISOString()} from ${fromZone.id} to ${toZone.id}`);
-      
-      // Determine which is the source time zone (user's time) and which is the target
-      const sourceZoneId = parsedQuery.fromZone || userTimeZone || 'America/New_York';
-      const targetZoneId = parsedQuery.toZone || toZone.id;
+      console.log(`Converting time: ${timeToConvert.toISOString()}`);
       
       // Perform the conversion
       const result = convertTime(timeToConvert, fromZone.id, toZone.id);
@@ -114,13 +111,13 @@ const Index: React.FC = () => {
         {
           id: fromZone.id,
           name: fromZone.name,
-          time: result.fromTime, // Source time
+          time: result.fromTime,
           isSource: true
         },
         {
           id: toZone.id,
           name: toZone.name,
-          time: result.toTime, // Converted time
+          time: result.toTime,
           isSource: false
         }
       ]);
@@ -150,7 +147,10 @@ const Index: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neo-background text-white">
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-6 relative">
+        {/* Settings Button */}
+        <SettingsButton />
+        
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gradient-teal mb-2">TimeMapper 24</h1>
           <p className="text-gray-400">

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import VoiceInputService from '@/services/VoiceInput';
 import { parseTimeQuery } from '@/services/ChatParser';
+import DeepSeekService from '@/services/DeepSeekService';
 
 interface TimeInputProps {
   onQuerySubmit: (query: string) => void;
@@ -14,6 +15,7 @@ interface TimeInputProps {
 const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [placeholder, setPlaceholder] = useState('Enter your time zone question...');
   
@@ -39,17 +41,57 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     };
   }, [isListening]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      onQuerySubmit(query);
-      setQuery('');
-    } else {
+    if (!query.trim()) {
       toast({
         title: "Empty Query",
         description: "Please enter a time zone question",
         variant: "destructive",
       });
+      return;
+    }
+
+    setIsValidating(true);
+
+    try {
+      // If DeepSeek is configured, use it to validate the query
+      if (DeepSeekService.hasApiKey()) {
+        const result = await DeepSeekService.verifyTimeQuery(query);
+        
+        if (!result.isValid) {
+          toast({
+            title: "Invalid Query",
+            description: result.suggestions || "Please specify a time and at least one timezone",
+            variant: "destructive",
+          });
+          setIsValidating(false);
+          return;
+        }
+      } else {
+        // Fallback to basic validation if DeepSeek is not configured
+        const parsedQuery = parseTimeQuery(query);
+        if (!parsedQuery.isValid) {
+          toast({
+            title: "Invalid Query",
+            description: "Please specify a time and at least one timezone. Example: '3pm EST to Tokyo'",
+            variant: "destructive",
+          });
+          setIsValidating(false);
+          return;
+        }
+      }
+
+      // Submit the query if valid
+      onQuerySubmit(query);
+      setQuery('');
+    } catch (error) {
+      console.error('Error validating query:', error);
+      // Submit anyway if validation fails
+      onQuerySubmit(query);
+      setQuery('');
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -76,20 +118,53 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
       setIsListening(true);
       
       VoiceInputService.startListening(
-        (transcript, isFinal) => {
+        async (transcript, isFinal) => {
           setQuery(transcript);
           
           if (isFinal) {
-            setIsListening(false);
-            setPlaceholder('Enter your time zone question...');
+            // Auto-stop voice recording
+            stopVoiceInput();
             
-            // Auto-submit if query is valid
-            const parsedQuery = parseTimeQuery(transcript);
-            if (parsedQuery.isValid) {
-              setTimeout(() => {
-                onQuerySubmit(transcript);
-                setQuery('');
-              }, 500);
+            // If DeepSeek is configured, use it to validate the query
+            if (DeepSeekService.hasApiKey()) {
+              try {
+                setIsValidating(true);
+                const result = await DeepSeekService.verifyTimeQuery(transcript);
+                
+                if (result.isValid) {
+                  // Auto-submit only if query is valid
+                  setTimeout(() => {
+                    onQuerySubmit(transcript);
+                    setQuery('');
+                    setIsValidating(false);
+                  }, 500);
+                } else {
+                  setIsValidating(false);
+                  toast({
+                    title: "Invalid Query",
+                    description: result.suggestions || "Please try again with a clearer query",
+                    variant: "destructive",
+                  });
+                }
+              } catch (error) {
+                console.error('Error validating voice query:', error);
+                setIsValidating(false);
+                // Fall back to basic validation
+                const parsedQuery = parseTimeQuery(transcript);
+                if (parsedQuery.isValid) {
+                  onQuerySubmit(transcript);
+                  setQuery('');
+                }
+              }
+            } else {
+              // Use basic validation if DeepSeek is not configured
+              const parsedQuery = parseTimeQuery(transcript);
+              if (parsedQuery.isValid) {
+                setTimeout(() => {
+                  onQuerySubmit(transcript);
+                  setQuery('');
+                }, 500);
+              }
             }
           }
         },
@@ -117,6 +192,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={placeholder}
             className="neo-inset px-4 py-3 h-12 bg-neo-inset text-white"
+            disabled={isValidating}
           />
         </div>
         
@@ -124,6 +200,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
           type="button" 
           onClick={toggleVoiceInput}
           className={`neo-raised p-3 ${isListening ? 'bg-neo-my-accent text-white' : ''}`}
+          disabled={isValidating}
         >
           {isListening ? <MicOff size={20} /> : <Mic size={20} />}
         </Button>
@@ -131,8 +208,9 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
         <Button 
           type="submit" 
           className="neo-raised bg-neo-my-accent text-white hover:bg-neo-my-accent/80"
+          disabled={isValidating}
         >
-          Convert
+          {isValidating ? 'Verifying...' : 'Convert'}
         </Button>
       </div>
       

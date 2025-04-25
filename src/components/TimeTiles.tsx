@@ -33,14 +33,16 @@ const TimeTile: React.FC<{ timeZone: TimeZoneInfo }> = ({ timeZone }) => {
       
       <div className="mt-4 text-center">
         <div className="flex justify-center items-center">
-          <div className="text-6xl font-bold">
+          <div className="text-7xl font-bold">
             {formatToTimeZone(timeZone.time, timeZone.id, 'h:mm')}
           </div>
-          <div className="text-2xl ml-2 mt-1 font-medium">
+          <div className="text-3xl ml-2 mt-2 font-medium">
             {formatToTimeZone(timeZone.time, timeZone.id, 'a')}
           </div>
         </div>
-        <div className="text-xs text-gray-400 mt-1">{format(timeZone.time, 'EEEE, MMMM d, yyyy')}</div>
+        <div className="text-sm text-gray-400 mt-1">
+          {format(timeZone.time, 'EEEE, MMMM d, yyyy')}
+        </div>
       </div>
     </div>
   );
