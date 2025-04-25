@@ -20,8 +20,8 @@ export interface TimeZoneInfo {
   name: string;
   time: Date;
   isSource?: boolean;
-  offset?: string; // Added missing offset property
-  abbreviation?: string; // Also adding abbreviation for completeness
+  offset?: string;
+  abbreviation?: string;
 }
 
 export interface TimeTilesProps {
@@ -35,11 +35,35 @@ const TimeTile: React.FC<{
 }> = ({ timeZone, onTimeZoneChange }) => {
   const [customZone, setCustomZone] = useState('');
   const [searching, setSearching] = useState(false);
+  const [filteredZones, setFilteredZones] = useState<typeof timeZones>([]);
   const isSource = !!timeZone.isSource;
 
   const handleTimeZoneChange = (newZoneId: string) => {
     if (onTimeZoneChange) {
       onTimeZoneChange(timeZone.id, newZoneId);
+    }
+  };
+
+  // Handle filtering as user types
+  const handleFilterChange = (value: string) => {
+    setCustomZone(value);
+    
+    if (value.trim().length >= 2) {
+      // Filter zones based on input
+      const filtered = timeZones.filter(tz => {
+        const lowercaseValue = value.toLowerCase();
+        return (
+          tz.name.toLowerCase().includes(lowercaseValue) ||
+          tz.id.toLowerCase().includes(lowercaseValue) ||
+          (tz.countryName && tz.countryName.toLowerCase().includes(lowercaseValue)) ||
+          (tz.abbreviation && tz.abbreviation.toLowerCase() === lowercaseValue) ||
+          (tz.synonyms && tz.synonyms.some(s => s.includes(lowercaseValue)))
+        );
+      }).slice(0, 20); // Limit to prevent dropdown from being too large
+      
+      setFilteredZones(filtered);
+    } else {
+      setFilteredZones([]);
     }
   };
 
@@ -61,107 +85,137 @@ const TimeTile: React.FC<{
           if (targetZone) {
             handleTimeZoneChange(targetZone);
             setCustomZone('');
+            setFilteredZones([]);
             toast({
               title: "Timezone Found",
               description: `Matched ${customZone} to ${targetZone}`,
             });
           } else {
             // If AI said it's valid but didn't return a specific timezone
-            fallbackSearch();
+            enhancedFallbackSearch();
           }
         } else {
-          toast({
-            title: "Location Not Found",
-            description: result.suggestions || "Could not find a matching timezone for this location",
-            variant: "destructive",
-          });
+          enhancedFallbackSearch();
         }
       } else {
-        // No API key, use basic matching
-        fallbackSearch();
+        // No API key, use enhanced matching
+        enhancedFallbackSearch();
       }
     } catch (error) {
       console.error('Error setting custom timezone:', error);
-      fallbackSearch();
+      enhancedFallbackSearch();
     } finally {
       setSearching(false);
     }
   };
 
-  const fallbackSearch = () => {
-    // Enhanced timezone search logic
-    const searchTerm = customZone.toLowerCase();
+  const enhancedFallbackSearch = () => {
+    // Enhanced timezone search logic with multiple fallbacks
+    const searchTerm = customZone.toLowerCase().trim();
     
-    // First try to find by country name (exact match)
-    const countryMatch = timeZones.find(tz => 
-      tz.countryName && tz.countryName.toLowerCase() === searchTerm
-    );
-    
-    if (countryMatch) {
-      handleTimeZoneChange(countryMatch.id);
+    // Try to find a match in our filtered results first
+    if (filteredZones.length > 0) {
+      handleTimeZoneChange(filteredZones[0].id);
       setCustomZone('');
+      setFilteredZones([]);
       toast({
-        title: "Country Found",
-        description: `Matched ${customZone} to ${countryMatch.name}, ${countryMatch.countryName}`,
+        title: "Location Found",
+        description: `Matched ${customZone} to ${filteredZones[0].name}, ${filteredZones[0].countryName || ''}`,
       });
       return;
     }
     
-    // Try finding by city name or timezone ID
-    const exactMatch = timeZones.find(tz => 
-      tz.name.toLowerCase() === searchTerm ||
-      tz.id.toLowerCase().includes(searchTerm) ||
-      (tz.abbreviation && tz.abbreviation.toLowerCase() === searchTerm)
+    // Try exact match first
+    for (const tz of timeZones) {
+      // Perfect match on name, country, or abbreviation
+      if (
+        tz.name.toLowerCase() === searchTerm || 
+        (tz.countryName && tz.countryName.toLowerCase() === searchTerm) ||
+        tz.abbreviation.toLowerCase() === searchTerm ||
+        (tz.synonyms && tz.synonyms.includes(searchTerm))
+      ) {
+        handleTimeZoneChange(tz.id);
+        setCustomZone('');
+        toast({
+          title: "Location Found",
+          description: `Found exact match for ${customZone}`,
+        });
+        return;
+      }
+    }
+    
+    // Try partial matches in city name (most common user search)
+    const cityMatches = timeZones.filter(tz => 
+      tz.name.toLowerCase().includes(searchTerm)
     );
     
-    if (exactMatch) {
-      handleTimeZoneChange(exactMatch.id);
+    if (cityMatches.length > 0) {
+      handleTimeZoneChange(cityMatches[0].id);
       setCustomZone('');
       toast({
         title: "City Found",
-        description: `Found exact match for ${customZone}`,
+        description: `Matched ${customZone} to ${cityMatches[0].name}`,
       });
       return;
     }
     
-    // Try partial matching
-    const partialMatch = timeZones.find(tz => 
-      tz.name.toLowerCase().includes(searchTerm) ||
-      tz.id.toLowerCase().includes(searchTerm) ||
-      (tz.abbreviation && tz.abbreviation.toLowerCase().includes(searchTerm)) ||
+    // Try partial matches in country name
+    const countryMatches = timeZones.filter(tz => 
       (tz.countryName && tz.countryName.toLowerCase().includes(searchTerm))
     );
     
-    if (partialMatch) {
-      handleTimeZoneChange(partialMatch.id);
+    if (countryMatches.length > 0) {
+      handleTimeZoneChange(countryMatches[0].id);
       setCustomZone('');
       toast({
-        title: "Location Found",
-        description: `Matched ${customZone} to ${partialMatch.name}`,
+        title: "Country Found",
+        description: `Matched ${customZone} to ${countryMatches[0].name}, ${countryMatches[0].countryName}`,
       });
       return;
     }
     
-    // If still no match, try fuzzy matching by extracting city names
-    const fuzzyMatch = timeZones.find(tz => {
-      const cityPart = tz.id.split('/').pop()?.toLowerCase().replace(/_/g, ' ');
-      return cityPart?.includes(searchTerm);
-    });
+    // Try matches on timezone ID or synonyms
+    const idMatches = timeZones.filter(tz => 
+      tz.id.toLowerCase().includes(searchTerm) ||
+      (tz.synonyms && tz.synonyms.some(syn => syn.includes(searchTerm)))
+    );
     
-    if (fuzzyMatch) {
-      handleTimeZoneChange(fuzzyMatch.id);
+    if (idMatches.length > 0) {
+      handleTimeZoneChange(idMatches[0].id);
       setCustomZone('');
       toast({
         title: "Location Found",
-        description: `Matched ${customZone} to ${fuzzyMatch.name}`,
+        description: `Matched ${customZone} to ${idMatches[0].name}`,
       });
       return;
+    }
+    
+    // Try fuzzy matching - extract words and look for partial matches
+    const searchWords = searchTerm.split(/\s+/);
+    for (const word of searchWords) {
+      if (word.length < 3) continue; // Skip very short words
+      
+      const wordMatches = timeZones.filter(tz => 
+        tz.name.toLowerCase().includes(word) ||
+        (tz.countryName && tz.countryName.toLowerCase().includes(word)) ||
+        (tz.synonyms && tz.synonyms.some(syn => syn.includes(word)))
+      );
+      
+      if (wordMatches.length > 0) {
+        handleTimeZoneChange(wordMatches[0].id);
+        setCustomZone('');
+        toast({
+          title: "Location Found",
+          description: `Matched "${word}" from "${customZone}" to ${wordMatches[0].name}`,
+        });
+        return;
+      }
     }
     
     // No match found
     toast({
       title: "Location Not Found",
-      description: "Could not find a matching timezone. Try a different city or connect an AI API for better matching",
+      description: "Could not find a matching timezone. Try a different city or country name.",
       variant: "destructive",
     });
   };
@@ -185,7 +239,7 @@ const TimeTile: React.FC<{
                   <Input
                     placeholder="Enter city, state, country or timezone..."
                     value={customZone}
-                    onChange={(e) => setCustomZone(e.target.value)}
+                    onChange={(e) => handleFilterChange(e.target.value)}
                     className="mb-2"
                   />
                   <Button 
@@ -197,7 +251,7 @@ const TimeTile: React.FC<{
                   </Button>
                 </div>
                 <DropdownMenuSeparator />
-                {timeZones.map((zone) => (
+                {(filteredZones.length > 0 ? filteredZones : timeZones).map((zone) => (
                   <DropdownMenuItem
                     key={zone.id}
                     onClick={() => handleTimeZoneChange(zone.id)}

@@ -83,21 +83,32 @@ const Index: React.FC = () => {
     }
   };
   
-  // Auto-detect user's timezone on component mount
+  // Auto-detect user's timezone on component mount - FIXED
   useEffect(() => {
     async function detectUserLocation() {
       setIsDetectingLocation(true);
       try {
-        // Try to get user's location
+        // Try to get user's location first
         const coords = await getUserGeolocation();
         
-        let detectedTimezone;
-        if (coords) {
-          // Get timezone from coordinates
-          detectedTimezone = await getTimezoneFromCoordinates(coords.latitude, coords.longitude);
-        } else {
-          // Fallback to browser's timezone
-          detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        // Get timezone directly from the browser - most reliable source
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        console.log("Browser detected timezone:", browserTimezone);
+        
+        let detectedTimezone = browserTimezone;
+        
+        // Only use coordinates-based detection as fallback or confirmation
+        if (coords && coords.latitude && coords.longitude) {
+          try {
+            const geoTimezone = await getTimezoneFromCoordinates(coords.latitude, coords.longitude);
+            // Use geo-based timezone if browser detection failed
+            if (!detectedTimezone && geoTimezone) {
+              detectedTimezone = geoTimezone;
+            }
+            console.log("Geo-based timezone:", geoTimezone);
+          } catch (geoError) {
+            console.warn("Geo-based timezone detection failed:", geoError);
+          }
         }
         
         if (detectedTimezone) {
@@ -105,28 +116,45 @@ const Index: React.FC = () => {
           let detectedZone = timeZones.find(tz => tz.id === detectedTimezone);
           
           if (!detectedZone) {
-            // If not found directly, try to find by city name
-            const cityName = detectedTimezone.split('/').pop() || '';
-            detectedZone = timeZones.find(tz => tz.id.includes(cityName)) || timeZones[0];
-          }
-          
-          // If still not found, use the browser timezone to find the closest match
-          if (!detectedZone) {
-            const browserOffset = new Date().getTimezoneOffset();
-            const offsetHours = -browserOffset / 60; // Convert minutes to hours and flip sign
+            // Try to find by matching parts of the timezone ID
+            const parts = detectedTimezone.split('/');
+            if (parts.length > 1) {
+              const cityPart = parts[parts.length - 1].replace(/_/g, ' ').toLowerCase();
+              const continentPart = parts[0].toLowerCase();
+              
+              detectedZone = timeZones.find(tz => {
+                const tzParts = tz.id.toLowerCase().split('/');
+                return tzParts.length > 1 && 
+                  tzParts[0] === continentPart &&
+                  tzParts[tzParts.length - 1].replace(/_/g, ' ').includes(cityPart);
+              });
+            }
             
-            // Find timezone with closest offset
-            const offsetsWithIndex = timeZones.map((tz, index) => {
-              const tzOffset = parseInt(tz.offset.replace(':', '.').replace('+', ''));
-              return { 
-                index, 
-                diff: Math.abs(tzOffset - offsetHours) 
-              };
-            });
-            
-            // Sort by closest offset
-            offsetsWithIndex.sort((a, b) => a.diff - b.diff);
-            detectedZone = timeZones[offsetsWithIndex[0].index];
+            // If still not found, fall back to best offset match
+            if (!detectedZone) {
+              const localOffset = new Date().getTimezoneOffset();
+              const offsetMinutes = -localOffset; // Convert to minutes, invert sign
+              
+              // Find timezone with closest offset
+              let closestZone = timeZones[0];
+              let minDifference = Number.MAX_SAFE_INTEGER;
+              
+              timeZones.forEach(tz => {
+                const tzOffsetStr = tz.offset;
+                const tzHours = parseInt(tzOffsetStr.slice(1, 3), 10);
+                const tzMinutes = parseInt(tzOffsetStr.slice(4, 6), 10);
+                const tzTotalMinutes = (tzOffsetStr.startsWith('-') ? -1 : 1) * (tzHours * 60 + tzMinutes);
+                
+                const difference = Math.abs(tzTotalMinutes - offsetMinutes);
+                if (difference < minDifference) {
+                  minDifference = difference;
+                  closestZone = tz;
+                }
+              });
+              
+              detectedZone = closestZone;
+              console.log("Used offset-based timezone detection:", closestZone.id);
+            }
           }
           
           setUserTimeZone(detectedZone.id);

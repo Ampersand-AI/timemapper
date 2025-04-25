@@ -75,10 +75,15 @@ const GeminiService = {
           contents: [{
             parts: [{
               text: `Given the following time zone query: "${query}", determine if it is a valid request for time zone conversion. 
-              A valid request should include at least one time (like "3pm" or "15:00") AND at least one time zone, city, country, state or location (like "EST", "Japan", "California", "Tokyo", "Berlin", or "New York").
+              A valid request should include at least one time (like "3pm" or "15:00") AND at least one time zone, city, country, state or location (like "EST", "Japan", "California", "Tokyo", "Berlin", "Paris", "Rome", "Madrid", "Dubai", "Singapore").
               The query may also include a date (like "tomorrow", "next Monday", "March 15th", "in 3 days").
               
-              Please be generous in identifying time zones or locations. If there is ANY mention of a place, city, state, country or standard time abbreviation that could be a time zone, consider it valid.
+              Be extremely generous in identifying time zones or locations. If there is ANY mention of a place, city, state, country or standard time abbreviation that could be a time zone, consider it valid.
+              
+              Be especially careful to correctly identify European, Middle Eastern, and Asian locations like:
+              - European cities and countries (Paris, London, Berlin, Madrid, Rome, Vienna, Amsterdam, Brussels, Zurich, etc.)
+              - Middle Eastern locations (Dubai, Riyadh, Tehran, Istanbul, Cairo, Doha, Kuwait, etc.)
+              - Asian locations (Tokyo, Beijing, Singapore, Mumbai, Delhi, Seoul, Bangkok, etc.)
               
               If a city name is provided (like "Paris", "London", "Tokyo"), map it to its proper time zone ID.
               
@@ -148,17 +153,17 @@ const GeminiService = {
     }
   },
   
-  // Enhanced basic validation as fallback when API fails
+  // Enhanced basic validation for international locations
   basicValidation(query: string): boolean {
     const normalizedQuery = query.toLowerCase();
     
     // Check for presence of time
     const hasTime = /\d+\s*(am|pm|a\.m\.|p\.m\.)|\d+:\d+|\d{1,2}\s*o'?clock|\d{1,2}\s*at\s*night|\d{1,2}\s*in\s*the\s*(morning|afternoon|evening)/.test(normalizedQuery);
     
-    // Check for presence of timezone, city, state, or country - greatly expanded to be more inclusive
-    const hasLocation = /est|pst|cst|mst|gmt|cet|jst|ist|utc|edt|pdt|bst|aest|nzst|hst|akst|europe|asia|america|australia|africa|pacific|tokyo|new york|london|paris|berlin|sydney|chicago|los angeles|toronto|mexico|india|singapore|dubai|moscow|rome|madrid|barcelona|amsterdam|frankfurt|vienna|zurich|beijing|shanghai|seoul|bangkok|istanbul|cairo|johannesburg|sao paulo|rio|buenos aires|lima|santiago|bogota|caracas|nairobi|lagos|mumbai|delhi|california|texas|florida|new york|washington|oregon|nevada|hawaii|alaska|ohio|michigan|illinois|pennsylvania|virginia|arizona|colorado|georgia|massachusetts|new jersey|north carolina|south carolina|tennessee|missouri|minnesota|wisconsin|alabama|kentucky|oklahoma|kansas|nebraska|iowa|arkansas|utah|mississippi|united states|canada|mexico|brazil|argentina|chile|colombia|peru|venezuela|ecuador|bolivia|paraguay|uruguay|cuba|puerto rico|dominican republic|jamaica|haiti|bahamas|united kingdom|france|germany|italy|spain|greece|portugal|ireland|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|hungary|czech republic|romania|bulgaria|turkey|russia|ukraine|egypt|south africa|nigeria|kenya|ethiopia|morocco|algeria|saudi arabia|iran|iraq|israel|pakistan|india|china|japan|south korea|north korea|thailand|vietnam|indonesia|malaysia|singapore|philippines|taiwan|australia|new zealand/.test(normalizedQuery);
+    // Enhanced pattern for international locations
+    const hasLocation = /est|pst|cst|mst|gmt|cet|jst|ist|utc|edt|pdt|bst|aest|nzst|hst|akst|europe|asia|america|australia|africa|pacific|middle east|tokyo|new york|london|paris|berlin|sydney|chicago|los angeles|toronto|mexico|india|singapore|dubai|moscow|rome|madrid|barcelona|amsterdam|frankfurt|vienna|zurich|beijing|shanghai|seoul|bangkok|istanbul|cairo|johannesburg|sao paulo|rio|buenos aires|lima|santiago|bogota|caracas|nairobi|lagos|mumbai|delhi|riyadh|tehran|dubai|abu dhabi|doha|kuwait|bahrain|athens|prague|budapest|warsaw|stockholm|oslo|helsinki|dublin|lisbon|brussels|copenhagen|vienna|zurich|geneva|milan|florence|venice|naples|munich|frankfurt|hamburg|cologne|stuttgart|amsterdam|rotterdam|madrid|barcelona|valencia|seville|malaga|paris|lyon|marseille|toulouse|nice|stockholm|gothenburg|oslo|helsinki|copenhagen|athens|thessaloniki|sofia|bucharest|belgrade|zagreb|ljubljana|bratislava|kyiv|minsk|tallinn|riga|vilnius|istanbul|ankara|izmir|beirut|amman|damascus|baghdad|tehran|riyadh|jeddah|mecca|medina|doha|kuwait|muscat|sanaa|cairo|alexandria|casablanca|tunis|algiers|tripoli|khartoum|addis ababa|nairobi|dar es salaam|johannesburg|cape town|lagos|accra|dakar|mumbai|delhi|kolkata|chennai|bangalore|hyderabad|colombo|dhaka|karachi|lahore|islamabad|kabul|tashkent|almaty|bishkek|dushanbe|ashgabat|ulaanbaatar|beijing|shanghai|guangzhou|shenzhen|hong kong|macau|taipei|tokyo|osaka|kyoto|seoul|busan|pyongyang|manila|jakarta|kuala lumpur|singapore|bangkok|hanoi|ho chi minh|phnom penh|vientiane|yangon|sydney|melbourne|brisbane|perth|adelaide|auckland|wellington|suva|honolulu|anchorage|vancouver|montreal|toronto|halifax|new york|boston|philadelphia|washington|atlanta|miami|chicago|houston|denver|las vegas|phoenix|seattle|portland|san francisco|los angeles|mexico|guadalajara|monterrey|havana|santo domingo|san juan|kingston|port-au-prince|guatemala|san salvador|tegucigalpa|managua|san jose|panama|bogota|caracas|quito|lima|la paz|santiago|buenos aires|montevideo|asuncion|rio de janeiro|sao paulo|brasilia|salvador|california|texas|florida|new york|washington|oregon|nevada|hawaii|alaska|ohio|michigan|illinois|pennsylvania|virginia|arizona|colorado|georgia|massachusetts|new jersey|north carolina|south carolina|tennessee|missouri|minnesota|wisconsin|alabama|kentucky|oklahoma|kansas|nebraska|iowa|arkansas|utah|mississippi|united states|canada|mexico|brazil|argentina|chile|colombia|peru|venezuela|ecuador|bolivia|paraguay|uruguay|cuba|puerto rico|dominican republic|jamaica|haiti|bahamas|united kingdom|france|germany|italy|spain|greece|portugal|ireland|netherlands|belgium|switzerland|austria|sweden|norway|denmark|finland|poland|hungary|czech|slovakia|romania|bulgaria|turkey|russia|ukraine|belarus|lithuania|latvia|estonia|serbia|croatia|albania|slovenia|macedonia|japan|china|korea|taiwan|india|pakistan|bangladesh|sri lanka|nepal|thailand|vietnam|cambodia|laos|myanmar|malaysia|indonesia|philippines|singapore|australia|new zealand|egypt|morocco|algeria|tunisia|libya|sudan|ethiopia|kenya|tanzania|south africa|nigeria|ghana|senegal|saudi arabia|iran|iraq|jordan|syria|lebanon|israel|palestine|yemen|oman|bahrain|qatar|kuwait|united arab emirates|afghanistan|uzbekistan|kazakhstan|kyrgyzstan|tajikistan|turkmenistan|mongolia/.test(normalizedQuery);
 
-    // Extended date patterns
+    // Enhanced date patterns
     const hasDate = /tomorrow|today|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun|january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec|next week|next month|in \d+ days?|in \d+ weeks?/.test(normalizedQuery);
     
     return hasTime && hasLocation;
