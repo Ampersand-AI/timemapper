@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import TimeInput from '@/components/TimeInput';
 import TimeTiles, { TimeZoneInfo } from '@/components/TimeTiles';
@@ -13,6 +14,7 @@ import {
   getTimezoneFromCoordinates
 } from '@/services/TimeUtils';
 import { formatInTimeZone } from 'date-fns-tz';
+import { toast } from '@/hooks/use-toast';
 import SettingsButton from '@/components/SettingsButton';
 import LlamaService from '@/services/LlamaService';
 import GeminiService from '@/services/GeminiService';
@@ -61,6 +63,11 @@ const Index: React.FC = () => {
     if (showGraph && showContext) {
       updateAnalysisAndContext(updatedTimeZones);
     }
+    
+    toast({
+      title: "Timezone Updated",
+      description: `Successfully changed timezone to ${newZoneId}`,
+    });
   };
   
   // Function to update analysis and context panels when timezones change
@@ -103,6 +110,11 @@ const Index: React.FC = () => {
               isSource: true
             }]);
             setFromZoneId(detectedZone.id);
+            
+            toast({
+              title: "Timezone Detected",
+              description: `Your timezone is set to ${detectedZone.name} (${detectedZone.id})`,
+            });
           } else {
             fallbackToDefault();
           }
@@ -131,6 +143,12 @@ const Index: React.FC = () => {
           isSource: true
         }]);
         setFromZoneId(defaultZone.id);
+        
+        toast({
+          title: "Using Default Timezone",
+          description: "Could not detect your timezone, using New York as default",
+          variant: "destructive",
+        });
       }
     }
 
@@ -198,6 +216,11 @@ const Index: React.FC = () => {
       }
       
       if (!isValidQuery) {
+        toast({
+          title: "Invalid Query",
+          description: "Please specify a time and at least one timezone or location.",
+          variant: "destructive",
+        });
         setIsDetectingLocation(false);
         return;
       }
@@ -264,6 +287,12 @@ const Index: React.FC = () => {
         setScheduledTime(timeToConvert);
         setShowGraph(true);
         setShowContext(true);
+        
+        // Show success toast
+        toast({
+          title: "Time Converted",
+          description: `Converted ${formatInTimeZone(timeToConvert, fromZone.id, 'h:mm a')} from ${fromZone.name} to ${toZone.name}`,
+        });
       } else {
         // Just display the target timezone alongside user's timezone
         const targetZone = findTimeZone(query);
@@ -285,15 +314,31 @@ const Index: React.FC = () => {
           setToZoneId(targetZone.id);
           setShowGraph(true);
           setShowContext(true);
+          
+          toast({
+            title: "Timezone Comparison",
+            description: `Showing current time in ${targetZone.name} compared to your time`,
+          });
         } else {
           // Just show the user's timezone
           setTimeZones([userTimezoneCard]);
           setShowGraph(false);
           setShowContext(false);
+          
+          toast({
+            title: "Current Time",
+            description: `Showing current time in ${fromZone.name}`,
+          });
         }
       }
     } catch (error) {
       console.error('Error processing query:', error);
+      
+      toast({
+        title: "Conversion Error",
+        description: "An error occurred while processing the time query. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsDetectingLocation(false);
     }
