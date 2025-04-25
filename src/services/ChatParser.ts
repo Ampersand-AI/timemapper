@@ -1,4 +1,3 @@
-
 // Natural language parser for time zone conversion queries
 
 interface ParsedQuery {
@@ -175,11 +174,15 @@ const extractTimeZones = (text: string): { fromZone?: string; toZone?: string } 
 // Extract time from user input
 const extractTime = (text: string): string | undefined => {
   let timeMatch = null;
+  let matchedPatternName = ''; // Add this variable to track which pattern was matched
   
   // Try all time patterns
   for (const [patternName, pattern] of Object.entries(timePatterns)) {
     timeMatch = text.match(pattern);
-    if (timeMatch) break;
+    if (timeMatch) {
+      matchedPatternName = patternName; // Store the name of the matched pattern
+      break;
+    }
   }
   
   if (!timeMatch) return undefined;
@@ -187,9 +190,9 @@ const extractTime = (text: string): string | undefined => {
   // Format matched time
   if (timeMatch[3]) { // Has AM/PM
     return `${timeMatch[1]}:${timeMatch[2] || '00'} ${timeMatch[3]}`;
-  } else if (patternName === 'justHour' && timeMatch[2]) { // Just hour with AM/PM
+  } else if (matchedPatternName === 'justHour' && timeMatch[2]) { // Just hour with AM/PM
     return `${timeMatch[1]}:00 ${timeMatch[2]}`;
-  } else if (patternName === 'justHour') { // Just hour without AM/PM
+  } else if (matchedPatternName === 'justHour') { // Just hour without AM/PM
     return `${timeMatch[1]}:00`;
   } else { // 24 hour format or without AM/PM
     return `${timeMatch[1]}:${timeMatch[2] || '00'}`;
