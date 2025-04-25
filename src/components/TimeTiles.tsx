@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { formatToTimeZone } from '@/services/TimeUtils';
 import { Button } from '@/components/ui/button';
@@ -9,8 +8,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { timeZones } from '@/services/TimeUtils';
+import OpenRouterService from '@/services/OpenRouterService';
 
 export interface TimeZoneInfo {
   id: string;
@@ -19,20 +21,47 @@ export interface TimeZoneInfo {
   isSource?: boolean;
 }
 
-interface TimeTilesProps {
-  timeZones: TimeZoneInfo[];
-  onTimeZoneChange?: (oldZoneId: string, newZoneId: string) => void;
-}
-
 const TimeTile: React.FC<{ 
   timeZone: TimeZoneInfo;
   onTimeZoneChange?: (oldZoneId: string, newZoneId: string) => void;
 }> = ({ timeZone, onTimeZoneChange }) => {
+  const [customZone, setCustomZone] = useState('');
+  const [isCustomInputOpen, setIsCustomInputOpen] = useState(false);
   const isSource = !!timeZone.isSource;
-  
+
   const handleTimeZoneChange = (newZoneId: string) => {
     if (onTimeZoneChange) {
       onTimeZoneChange(timeZone.id, newZoneId);
+    }
+  };
+
+  const handleCustomZoneSubmit = async () => {
+    if (!customZone.trim()) return;
+
+    try {
+      if (OpenRouterService.hasApiKey()) {
+        // Verify timezone with OpenRouter AI
+        const result = await OpenRouterService.verifyTimeQuery(`time in ${customZone}`);
+        if (result.fromZone) {
+          handleTimeZoneChange(result.fromZone);
+          setCustomZone('');
+          setIsCustomInputOpen(false);
+        } else {
+          throw new Error('Invalid timezone');
+        }
+      }
+    } catch (error) {
+      console.error('Error setting custom timezone:', error);
+      // Fallback to basic timezone search
+      const matchingZone = timeZones.find(tz => 
+        tz.name.toLowerCase().includes(customZone.toLowerCase()) ||
+        tz.id.toLowerCase().includes(customZone.toLowerCase())
+      );
+      if (matchingZone) {
+        handleTimeZoneChange(matchingZone.id);
+        setCustomZone('');
+        setIsCustomInputOpen(false);
+      }
     }
   };
   
@@ -52,16 +81,31 @@ const TimeTile: React.FC<{
                     <Settings className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[200px] bg-neo-background border border-gray-700">
+                <DropdownMenuContent align="end" className="w-[300px] bg-neo-background border border-gray-700">
                   {timeZones.map((zone) => (
                     <DropdownMenuItem
                       key={zone.id}
                       onClick={() => handleTimeZoneChange(zone.id)}
                       className="text-white hover:bg-gray-700"
                     >
-                      {zone.name}
+                      {zone.name} ({zone.id})
                     </DropdownMenuItem>
                   ))}
+                  <DropdownMenuSeparator />
+                  <div className="p-2">
+                    <Input
+                      placeholder="Enter custom timezone or city..."
+                      value={customZone}
+                      onChange={(e) => setCustomZone(e.target.value)}
+                      className="mb-2"
+                    />
+                    <Button 
+                      onClick={handleCustomZoneSubmit}
+                      className="w-full"
+                    >
+                      Set Custom Timezone
+                    </Button>
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

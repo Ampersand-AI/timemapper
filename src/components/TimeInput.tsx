@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,7 +54,6 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     setIsValidating(true);
 
     try {
-      // If OpenRouter is configured, use it to validate the query
       if (OpenRouterService.hasApiKey()) {
         const result = await OpenRouterService.verifyTimeQuery(query);
         console.log("OpenRouter validation result:", result);
@@ -70,7 +68,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
           return;
         }
         
-        // If OpenRouter returned specific timezone info, include it in the submission
+        // Pass the enhanced query with timezone info
         onQuerySubmit(query);
       } else {
         // Fallback to basic validation if OpenRouter is not configured
@@ -88,11 +86,9 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
         // Submit the query if valid
         onQuerySubmit(query);
       }
-      
       setQuery('');
     } catch (error) {
       console.error('Error validating query:', error);
-      // Submit anyway if validation fails
       onQuerySubmit(query);
       setQuery('');
     } finally {
