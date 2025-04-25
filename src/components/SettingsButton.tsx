@@ -14,29 +14,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/hooks/use-toast';
-import LlamaService, { AVAILABLE_MODELS } from '@/services/LlamaService';
+import GeminiService, { AVAILABLE_MODELS } from '@/services/GeminiService';
 
 const SettingsButton: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [apiKey, setApiKey] = useState(LlamaService.getApiKey() || '');
-  const [selectedModel, setSelectedModel] = useState(LlamaService.getSelectedModel());
+  const [apiKey, setApiKey] = useState(GeminiService.getApiKey() || '');
+  const [selectedModel, setSelectedModel] = useState(GeminiService.getSelectedModel());
 
   const handleSaveSettings = () => {
     try {
-      // Save Llama API key
+      // Save Gemini API key
       if (apiKey.trim()) {
-        LlamaService.setApiKey(apiKey.trim());
-        LlamaService.setSelectedModel(selectedModel);
+        GeminiService.setApiKey(apiKey.trim());
+        GeminiService.setSelectedModel(selectedModel);
         toast({
           title: "Settings Saved",
-          description: "Llama API key and model have been updated",
+          description: "Gemini API key and model have been updated",
         });
       } else {
         // If field is empty, clear the API key
-        LlamaService.setApiKey('');
+        GeminiService.setApiKey('');
         toast({
           title: "Settings Updated",
-          description: "Llama API integration has been disabled",
+          description: "Gemini API integration has been disabled",
           variant: "destructive",
         });
       }
@@ -52,23 +52,23 @@ const SettingsButton: React.FC = () => {
     }
   };
 
-  const testLlamaAPI = async () => {
+  const testGeminiAPI = async () => {
     try {
       if (!apiKey.trim()) {
         toast({
           title: "Missing API Key",
-          description: "Please enter your Llama API key first",
+          description: "Please enter your Gemini API key first",
           variant: "destructive",
         });
         return;
       }
 
       // Set the API key temporarily
-      LlamaService.setApiKey(apiKey.trim());
-      LlamaService.setSelectedModel(selectedModel);
+      GeminiService.setApiKey(apiKey.trim());
+      GeminiService.setSelectedModel(selectedModel);
 
       // Test with a simple query
-      const result = await LlamaService.verifyTimeQuery("What time is it in London?");
+      const result = await GeminiService.verifyTimeQuery("What time is it in London?");
 
       if (result.error) {
         toast({
@@ -79,11 +79,11 @@ const SettingsButton: React.FC = () => {
       } else {
         toast({
           title: "API Test Successful",
-          description: "Connection to Llama API is working",
+          description: "Connection to Gemini API is working",
         });
       }
     } catch (error) {
-      console.error('Llama API test error:', error);
+      console.error('Gemini API test error:', error);
       toast({
         title: "API Test Failed",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -114,12 +114,12 @@ const SettingsButton: React.FC = () => {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="apiKey">Llama API Key</Label>
+              <Label htmlFor="apiKey">Gemini API Key</Label>
               <Input
                 id="apiKey"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your Perplexity AI key for Llama"
+                placeholder="Enter your Google API key for Gemini"
                 className="neo-inset bg-neo-inset text-white"
                 type="password"
               />
@@ -149,10 +149,10 @@ const SettingsButton: React.FC = () => {
             <Button 
               type="button" 
               variant="outline" 
-              onClick={testLlamaAPI}
+              onClick={testGeminiAPI}
               className="w-full"
             >
-              Test Llama API
+              Test Gemini API
             </Button>
           </div>
 
@@ -171,3 +171,4 @@ const SettingsButton: React.FC = () => {
 };
 
 export default SettingsButton;
+

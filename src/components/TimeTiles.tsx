@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { formatToTimeZone } from '@/services/TimeUtils';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { timeZones } from '@/services/TimeUtils';
-import LlamaService from '@/services/LlamaService';
+import GeminiService from '@/services/GeminiService';
 import { toast } from '@/hooks/use-toast';
 
 export interface TimeZoneInfo {
@@ -47,10 +46,10 @@ const TimeTile: React.FC<{
     setSearching(true);
 
     try {
-      if (LlamaService.hasApiKey()) {
-        // Use Llama to process the city/location name
+      if (GeminiService.hasApiKey()) {
+        // Use Gemini to process the city/location name
         const query = `Time in ${customZone}`;
-        const result = await LlamaService.verifyTimeQuery(query);
+        const result = await GeminiService.verifyTimeQuery(query);
         
         if (result.fromZone) {
           // AI identified a timezone
