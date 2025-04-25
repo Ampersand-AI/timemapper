@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts';
 import { getWorkingHoursRange } from '@/services/TimeUtils';
 import { Clock } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -78,12 +78,26 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
     return { chartData, overlappingHours: workingHoursOverlap, exactTimeDiff };
   }, [fromZoneId, toZoneId, date]);
   
+  const getTimeDiffDisplay = () => {
+    const hours = Math.abs(exactTimeDiff);
+    const direction = exactTimeDiff > 0 ? 'ahead' : 'behind';
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ${direction}`;
+  };
+  
   return (
     <div className="neo-raised p-6 mt-6">
       <h3 className="text-lg font-medium mb-4 flex items-center">
         <Clock className="mr-2" size={20} />
         Time Overlap Analysis
       </h3>
+      
+      <div className="text-center mb-4">
+        <div className="inline-block bg-gray-800 px-4 py-2 rounded-full">
+          <span className="text-xl font-medium text-white">
+            Time difference: {getTimeDiffDisplay()}
+          </span>
+        </div>
+      </div>
       
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -100,14 +114,27 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
                 <stop offset="5%" stopColor="#FF914D" stopOpacity={0.8}/>
                 <stop offset="95%" stopColor="#FF914D" stopOpacity={0.2}/>
               </linearGradient>
+              <linearGradient id="colorOverlap" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4CAF50" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#4CAF50" stopOpacity={0.3}/>
+              </linearGradient>
             </defs>
             <XAxis 
               dataKey="hour" 
               tick={{ fill: '#aaa', fontSize: 12 }}
-              interval={2}
+              interval={1}
             />
             <YAxis hide />
             <Tooltip content={<CustomTooltip />} />
+            <Legend 
+              verticalAlign="top"
+              height={36}
+              formatter={(value) => {
+                if (value === "from") return "Your working hours";
+                if (value === "to") return "Their working hours";
+                return value;
+              }}
+            />
             <ReferenceLine y={0.5} stroke="#666" strokeDasharray="3 3" />
             <Area 
               type="monotone" 
@@ -125,33 +152,37 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
               fill="url(#colorTo)" 
               strokeWidth={2}
             />
+            {/* Add special highlight for overlapping hours */}
+            {chartData.filter(d => d.overlapping).length > 0 && (
+              <Area 
+                type="monotone"
+                dataKey={(data) => data.overlapping ? 0.7 : 0}
+                stackId="3"
+                stroke="#4CAF50"
+                fill="url(#colorOverlap)"
+                strokeWidth={1}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
       
-      <div className="flex justify-between mt-4 text-sm">
-        <div className="flex items-center">
-          <span className="inline-block w-3 h-3 rounded-full bg-neo-my-accent mr-2"></span>
-          Your working hours
-        </div>
-        <div className="flex items-center">
-          <span className="inline-block w-3 h-3 rounded-full bg-neo-their-accent mr-2"></span>
-          Their working hours
-        </div>
-      </div>
-      
-      <div className="mt-6 text-center">
-        <p className="text-xl font-medium mb-2">
-          {overlappingHours} hours of overlap
+      <div className="mt-6 text-center py-3 bg-gray-800/50 rounded-lg">
+        <p className="text-xl font-medium text-white">
+          {overlappingHours} {overlappingHours === 1 ? 'hour' : 'hours'} of working time overlap
         </p>
-        <p className="text-gray-400 text-sm">
-          Time difference: {Math.abs(exactTimeDiff)} hours
-          {exactTimeDiff > 0 ? ' ahead' : ' behind'}
-        </p>
+        {overlappingHours > 0 ? (
+          <p className="text-green-400 text-sm mt-1">
+            ✓ Good communication window available
+          </p>
+        ) : (
+          <p className="text-orange-400 text-sm mt-1">
+            ⚠ No overlapping working hours - coordination may be challenging
+          </p>
+        )}
       </div>
     </div>
   );
 };
 
 export default TimeGapGraph;
-

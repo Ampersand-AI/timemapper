@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import VoiceInputService from '@/services/VoiceInput';
 import { parseTimeQuery } from '@/services/ChatParser';
-import OpenAIService from '@/services/OpenAIService';
+import GeminiService from '@/services/GeminiService';
 
 interface TimeInputProps {
   onQuerySubmit: (query: string) => void;
@@ -54,8 +54,8 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     setIsValidating(true);
 
     try {
-      const result = OpenAIService.hasApiKey() 
-        ? await OpenAIService.verifyTimeQuery(query)
+      const result = GeminiService.hasApiKey() 
+        ? await GeminiService.verifyTimeQuery(query)
         : { isValid: parseTimeQuery(query).isValid };
       
       if (!result.isValid) {
@@ -131,10 +131,10 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             }
             
             // Only use AI validation if basic validation fails
-            if (OpenAIService.hasApiKey()) {
+            if (GeminiService.hasApiKey()) {
               try {
                 setIsValidating(true);
-                const result = await OpenAIService.verifyTimeQuery(transcript);
+                const result = await GeminiService.verifyTimeQuery(transcript);
                 
                 if (result.isValid) {
                   // Auto-submit if query is valid

@@ -14,29 +14,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/hooks/use-toast';
-import OpenAIService, { AVAILABLE_MODELS } from '@/services/OpenAIService';
+import GeminiService, { AVAILABLE_MODELS } from '@/services/GeminiService';
 
 const SettingsButton: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [apiKey, setApiKey] = useState(OpenAIService.getApiKey() || '');
-  const [selectedModel, setSelectedModel] = useState(OpenAIService.getSelectedModel());
+  const [apiKey, setApiKey] = useState(GeminiService.getApiKey() || '');
+  const [selectedModel, setSelectedModel] = useState(GeminiService.getSelectedModel());
 
   const handleSaveSettings = () => {
     try {
-      // Save OpenAI API key
+      // Save Gemini API key
       if (apiKey.trim()) {
-        OpenAIService.setApiKey(apiKey.trim());
-        OpenAIService.setSelectedModel(selectedModel);
+        GeminiService.setApiKey(apiKey.trim());
+        GeminiService.setSelectedModel(selectedModel);
         toast({
           title: "Settings Saved",
-          description: "OpenAI API key and model have been updated",
+          description: "Gemini API key and model have been updated",
         });
       } else {
         // If field is empty, clear the API key
-        OpenAIService.setApiKey('');
+        GeminiService.setApiKey('');
         toast({
           title: "Settings Updated",
-          description: "OpenAI API integration has been disabled",
+          description: "Gemini API integration has been disabled",
           variant: "destructive",
         });
       }
@@ -52,23 +52,23 @@ const SettingsButton: React.FC = () => {
     }
   };
 
-  const testOpenAIAPI = async () => {
+  const testGeminiAPI = async () => {
     try {
       if (!apiKey.trim()) {
         toast({
           title: "Missing API Key",
-          description: "Please enter your OpenAI API key first",
+          description: "Please enter your Gemini API key first",
           variant: "destructive",
         });
         return;
       }
 
       // Set the API key temporarily
-      OpenAIService.setApiKey(apiKey.trim());
-      OpenAIService.setSelectedModel(selectedModel);
+      GeminiService.setApiKey(apiKey.trim());
+      GeminiService.setSelectedModel(selectedModel);
 
       // Test with a simple query
-      const result = await OpenAIService.verifyTimeQuery("Test query for OpenAI API");
+      const result = await GeminiService.verifyTimeQuery("Test query for Gemini API");
 
       if (result.error) {
         toast({
@@ -79,11 +79,11 @@ const SettingsButton: React.FC = () => {
       } else {
         toast({
           title: "API Test Successful",
-          description: "Connection to OpenAI API is working",
+          description: "Connection to Gemini API is working",
         });
       }
     } catch (error) {
-      console.error('OpenAI API test error:', error);
+      console.error('Gemini API test error:', error);
       toast({
         title: "API Test Failed",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -114,12 +114,12 @@ const SettingsButton: React.FC = () => {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="apiKey">OpenAI API Key</Label>
+              <Label htmlFor="apiKey">Gemini API Key</Label>
               <Input
                 id="apiKey"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your OpenAI API key"
+                placeholder="Enter your Gemini API key"
                 className="neo-inset bg-neo-inset text-white"
                 type="password"
               />
@@ -149,10 +149,10 @@ const SettingsButton: React.FC = () => {
             <Button 
               type="button" 
               variant="outline" 
-              onClick={testOpenAIAPI}
+              onClick={testGeminiAPI}
               className="w-full"
             >
-              Test OpenAI API
+              Test Gemini API
             </Button>
           </div>
 
