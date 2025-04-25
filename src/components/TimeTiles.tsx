@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { formatToTimeZone } from '@/services/TimeUtils';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { timeZones } from '@/services/TimeUtils';
-import OpenRouterService from '@/services/OpenRouterService';
+import OpenAIService from '@/services/OpenAIService';
 
 export interface TimeZoneInfo {
   id: string;
@@ -46,10 +45,10 @@ const TimeTile: React.FC<{
     setSearching(true);
 
     try {
-      if (OpenRouterService.hasApiKey()) {
-        // Use OpenRouter AI to process the city/location name
+      if (OpenAIService.hasApiKey()) {
+        // Use OpenAI to process the city/location name
         const query = `Time in ${customZone}`;
-        const result = await OpenRouterService.verifyTimeQuery(query);
+        const result = await OpenAIService.verifyTimeQuery(query);
         
         if (result.fromZone) {
           // AI identified a timezone

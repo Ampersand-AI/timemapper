@@ -1,6 +1,5 @@
-
-const LOCAL_STORAGE_API_KEY = 'openrouter_api_key';
-const LOCAL_STORAGE_MODEL = 'openrouter_model';
+const LOCAL_STORAGE_API_KEY = 'openai_api_key';
+const LOCAL_STORAGE_MODEL = 'openai_model';
 
 export interface ModelOption {
   id: string;
@@ -9,9 +8,8 @@ export interface ModelOption {
 }
 
 export const AVAILABLE_MODELS: ModelOption[] = [
-  { id: 'gpt-4o-mini', name: 'GPT-4 Mini', description: 'Fast and efficient' },
-  { id: 'gpt-4o', name: 'GPT-4', description: 'Powerful and precise' },
-  { id: 'gpt-4.5-preview', name: 'GPT-4.5 Preview', description: 'Latest capabilities' }
+  { id: 'gpt-3.5-turbo', name: 'GPT-3.5', description: 'Fast and efficient' },
+  { id: 'gpt-4', name: 'GPT-4', description: 'Powerful and precise' }
 ];
 
 interface VerificationResult {
@@ -24,7 +22,7 @@ interface VerificationResult {
   date?: string;
 }
 
-const OpenRouterService = {
+const OpenAIService = {
   hasApiKey(): boolean {
     return !!this.getApiKey();
   },
@@ -42,7 +40,7 @@ const OpenRouterService = {
   },
 
   getSelectedModel(): string {
-    return localStorage.getItem(LOCAL_STORAGE_MODEL) || 'gpt-4o-mini';
+    return localStorage.getItem(LOCAL_STORAGE_MODEL) || 'gpt-3.5-turbo';
   },
 
   setSelectedModel(modelId: string): void {
@@ -61,11 +59,10 @@ const OpenRouterService = {
     }
     
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': window.location.href,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -96,8 +93,8 @@ const OpenRouterService = {
       });
       
       if (!response.ok) {
-        console.error(`OpenRouter API error status: ${response.status}`);
-        console.error(`OpenRouter API error details:`, await response.text());
+        console.error(`OpenAI API error status: ${response.status}`);
+        console.error(`OpenAI API error details:`, await response.text());
         throw new Error(`API request failed with status ${response.status}`);
       }
       
@@ -105,10 +102,10 @@ const OpenRouterService = {
       const content = data.choices?.[0]?.message?.content;
       
       if (!content) {
-        throw new Error('Invalid response from OpenRouter API');
+        throw new Error('Invalid response from OpenAI API');
       }
       
-      console.log('OpenRouter response:', content);
+      console.log('OpenAI response:', content);
       
       // Extract the JSON object from the text
       const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -131,11 +128,11 @@ const OpenRouterService = {
             undefined
         };
       } catch (parseError) {
-        console.error('Error parsing OpenRouter response:', parseError);
+        console.error('Error parsing OpenAI response:', parseError);
         return { isValid: this.basicValidation(query) };
       }
     } catch (error) {
-      console.error('OpenRouter API error:', error);
+      console.error('OpenAI API error:', error);
       return { 
         isValid: this.basicValidation(query),
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -157,4 +154,4 @@ const OpenRouterService = {
   }
 };
 
-export default OpenRouterService;
+export default OpenAIService;
