@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import VoiceInputService from '@/services/VoiceInput';
 import { parseTimeQuery } from '@/services/ChatParser';
-import OpenRouterService from '@/services/OpenRouterService';
+import OpenAIService from '@/services/OpenAIService';
 
 interface TimeInputProps {
   onQuerySubmit: (query: string) => void;
@@ -55,8 +54,8 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     setIsValidating(true);
 
     try {
-      const result = OpenRouterService.hasApiKey() 
-        ? await OpenRouterService.verifyTimeQuery(query)
+      const result = OpenAIService.hasApiKey() 
+        ? await OpenAIService.verifyTimeQuery(query)
         : { isValid: parseTimeQuery(query).isValid };
       
       if (!result.isValid) {
@@ -132,10 +131,10 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             }
             
             // Only use AI validation if basic validation fails
-            if (OpenRouterService.hasApiKey()) {
+            if (OpenAIService.hasApiKey()) {
               try {
                 setIsValidating(true);
-                const result = await OpenRouterService.verifyTimeQuery(transcript);
+                const result = await OpenAIService.verifyTimeQuery(transcript);
                 
                 if (result.isValid) {
                   // Auto-submit if query is valid
