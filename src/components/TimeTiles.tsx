@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { formatToTimeZone } from '@/services/TimeUtils';
@@ -19,6 +20,11 @@ export interface TimeZoneInfo {
   name: string;
   time: Date;
   isSource?: boolean;
+}
+
+export interface TimeTilesProps {
+  timeZones: TimeZoneInfo[];
+  onTimeZoneChange: (oldZoneId: string, newZoneId: string) => void;
 }
 
 const TimeTile: React.FC<{ 
