@@ -5,6 +5,9 @@ interface VerificationResult {
   isValid: boolean;
   suggestions?: string;
   error?: string;
+  fromZone?: string;
+  toZone?: string;
+  time?: string;
 }
 
 const GeminiService = {
@@ -43,6 +46,8 @@ const GeminiService = {
               text: `Given the following time zone query: "${query}", determine if it is a valid request for time zone conversion. 
               A valid request should include at least one time (like "3pm") AND at least one time zone (like "EST" or "Tokyo").
               
+              Please be generous in identifying time zones. If there is ANY mention of a place or standard time abbreviation that could be a time zone, consider it valid.
+              
               Please respond with a JSON object containing:
               {
                 "isValid": boolean,
@@ -73,6 +78,8 @@ const GeminiService = {
         throw new Error('Invalid response from Gemini API');
       }
       
+      console.log('Gemini response:', textContent);
+      
       // Extract the JSON object from the text
       const jsonMatch = textContent.match(/\{[\s\S]*\}/);
       
@@ -85,6 +92,9 @@ const GeminiService = {
         
         return {
           isValid: !!result.isValid,
+          fromZone: result.fromZone || undefined,
+          toZone: result.toZone || undefined,
+          time: result.time || undefined,
           suggestions: !result.isValid ? 
             (result.suggestions || 'Please include a time and at least one timezone') : 
             undefined
@@ -109,8 +119,8 @@ const GeminiService = {
     // Check for presence of time
     const hasTime = /\d+\s*(am|pm|a\.m\.|p\.m\.)|\d+:\d+/.test(normalizedQuery);
     
-    // Check for presence of timezone
-    const hasTimeZone = /est|pst|cst|mst|gmt|cet|jst|ist|utc|edt|pdt|tokyo|new york|london|paris|berlin|sydney/.test(normalizedQuery);
+    // Check for presence of timezone - expanded to be more inclusive
+    const hasTimeZone = /est|pst|cst|mst|gmt|cet|jst|ist|utc|edt|pdt|bst|aest|nzst|hst|akst|europe|asia|america|australia|pacific|tokyo|new york|london|paris|berlin|sydney|chicago|los angeles|toronto|mexico|india/.test(normalizedQuery);
     
     return hasTime && hasTimeZone;
   }

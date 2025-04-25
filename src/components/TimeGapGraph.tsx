@@ -38,12 +38,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date }) => {
+  console.log("Rendering TimeGapGraph with:", { fromZoneId, toZoneId, date: date.toISOString() });
+  
   // Get the working hours data for both time zones
   const myHours = getWorkingHoursRange(date, fromZoneId);
   const theirHours = getWorkingHoursRange(date, toZoneId);
   
+  // Debug information
+  console.log("My hours:", myHours.map(h => ({ hour: h.hour, timestamp: h.timestamp })));
+  console.log("Their hours:", theirHours.map(h => ({ hour: h.hour, timestamp: h.timestamp })));
+  
   // Prepare data for the chart
-  const chartData = myHours.map((myHour, index) => {
+  const chartData = myHours.map((myHour) => {
     const myWorkingHour = myHour.isWorkingHour ? 1 : 0.3;
     
     // For each "my hour", find the equivalent "their hour" in the other timezone

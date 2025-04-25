@@ -5,7 +5,7 @@ export interface NewsItem {
   title: string;
   summary: string;
   source: string;
-  url: string;
+  url: string; // We'll keep this in the interface but not display it
 }
 
 interface NewsCache {
@@ -28,7 +28,7 @@ class NewsService {
     
     try {
       // For demo purposes, we'll use mock data to avoid API key requirements
-      const newsItems = await this.fetchMockNewsData(location);
+      const newsItems = await this.fetchMockBusinessNewsData(location);
       
       // Cache the result
       this.cache[location] = {
@@ -43,110 +43,110 @@ class NewsService {
     }
   }
 
-  // Mock news data generation
-  private async fetchMockNewsData(location: string): Promise<NewsItem[]> {
+  // Mock business news data generation
+  private async fetchMockBusinessNewsData(location: string): Promise<NewsItem[]> {
     // Simulate a network request
     await new Promise(resolve => setTimeout(resolve, 400));
     
-    // Different mock headlines for different locations
+    // Different mock business headlines for different locations
     const locationHeadlines: Record<string, NewsItem[]> = {
       "New York": [
         {
-          title: "Central Park Renovation Enters Final Phase",
-          summary: "The long-awaited central park renovation project will be completed next month.",
-          source: "NY Times",
+          title: "Wall Street Reports Record Q1 Profits",
+          summary: "Major financial institutions exceed analyst expectations with strong performance.",
+          source: "Financial Times",
           url: "#"
         },
         {
-          title: "NYC Marathon Sets New Participation Record",
-          summary: "This year's marathon saw over 52,000 runners from 130 countries.",
-          source: "NY Post",
+          title: "Tech Startup Funding Reaches $10B in NYC",
+          summary: "Venture capital investments in New York tech sector show significant growth.",
+          source: "NY Business Journal",
           url: "#"
         },
         {
-          title: "Broadway Attendance Surges in Post-Pandemic Era",
-          summary: "Ticket sales are up 40% compared to last year as tourists return to the city.",
-          source: "Broadway News",
+          title: "Commercial Real Estate Market Stabilizing",
+          summary: "Office occupancy rates beginning to recover in Manhattan business district.",
+          source: "Commercial Property News",
           url: "#"
         }
       ],
       "London": [
         {
-          title: "New Underground Line Opens to Public",
-          summary: "The Elizabeth Line is now fully operational, connecting east and west London.",
-          source: "The Guardian",
+          title: "Bank of England Holds Interest Rates",
+          summary: "Central bank maintains current rates amid inflation concerns and economic growth.",
+          source: "The Economist",
           url: "#"
         },
         {
-          title: "Thames Barrier Celebrates 40 Years of Flood Protection",
-          summary: "The iconic flood defense system has protected London 200 times since opening.",
-          source: "BBC",
+          title: "Brexit Impact on Financial Services Less Than Feared",
+          summary: "New report shows London maintaining position as Europe's financial hub.",
+          source: "Financial News",
           url: "#"
         },
         {
-          title: "London Tech Week Draws Record Attendance",
-          summary: "Over 45,000 tech professionals attended the week-long innovation showcase.",
-          source: "Tech Crunch",
+          title: "Sustainable Investment Funds See Record Growth",
+          summary: "ESG-focused investments now represent 30% of all new capital in UK markets.",
+          source: "Investment Weekly",
           url: "#"
         }
       ],
       "Tokyo": [
         {
-          title: "New Bullet Train Route Connects Tokyo and Sapporo",
-          summary: "The new Shinkansen line cuts travel time between the cities by half.",
-          source: "Japan Times",
+          title: "Bank of Japan Adjusts Monetary Policy",
+          summary: "Central bank shifts stance on yield curve control amid inflation concerns.",
+          source: "Nikkei",
           url: "#"
         },
         {
-          title: "Tokyo's Oldest Sakura Tree Blooms Early",
-          summary: "The 400-year-old cherry tree at Yasukuni Shrine has bloomed two weeks ahead of schedule.",
-          source: "Asahi Shimbun",
+          title: "Toyota Announces $10B Investment in EV Production",
+          summary: "Japan's largest automaker accelerates electric vehicle manufacturing strategy.",
+          source: "Business Japan",
           url: "#"
         },
         {
-          title: "Robot Cafe in Shibuya Expands After Viral Success",
-          summary: "The popular cafe will open three new locations across the city next month.",
-          source: "Tokyo Weekly",
+          title: "SoftBank Reports Strong Vision Fund Performance",
+          summary: "Tech investments deliver positive returns after previous volatility.",
+          source: "Tech Investor News",
           url: "#"
         }
       ],
       "Sydney": [
         {
-          title: "Opera House to Undergo Historic Renovation",
-          summary: "The $200M project will preserve the landmark while improving acoustics.",
-          source: "Sydney Morning Herald",
+          title: "Australian Central Bank Raises Interest Rates",
+          summary: "Rate hike aims to control inflation while maintaining economic growth.",
+          source: "Australian Financial Review",
           url: "#"
         },
         {
-          title: "Record Coral Bloom Reported at Great Barrier Reef",
-          summary: "Scientists report unprecedented recovery in northern sections of the reef.",
-          source: "Australian Geographic",
+          title: "Mining Sector Reports Record Exports",
+          summary: "Resources industry continues to drive Australian economic performance.",
+          source: "Mining Journal",
           url: "#"
         },
         {
-          title: "Sydney Film Festival Announces International Lineup",
-          summary: "Over 200 films from 60 countries will be screened during the two-week event.",
-          source: "Screen Daily",
+          title: "Tech Industry Growth Attracts Global Talent",
+          summary: "Australian startups benefit from new visa program for tech specialists.",
+          source: "Tech Daily",
           url: "#"
         }
       ],
       "Paris": [
         {
-          title: "Eiffel Tower Lighting System Gets Eco-Friendly Upgrade",
-          summary: "New LED system reduces the monument's energy consumption by 40%.",
-          source: "Le Monde",
+          title: "French Luxury Goods Sector Posts Strong Growth",
+          summary: "LVMH and Kering report increased sales in Asian and American markets.",
+          source: "Business France",
           url: "#"
         },
         {
-          title: "Paris Metro Extends Hours for Summer Festival Season",
-          summary: "Lines 1 and 2 will run until 2 AM on weekends through September.",
-          source: "France 24",
+          title: "Macron's Economic Reforms Show Initial Success",
+          summary: "Business confidence rising as regulatory changes take effect.",
+          source: "European Business Review",
           url: "#"
         },
         {
-          title: "Louvre Unveils New Da Vinci Restoration",
-          summary: "Years of work reveal new details in the Renaissance masterpiece.",
-          source: "Art News",
+          title: "Renewable Energy Investment Hits Record High",
+          summary: "French companies leading EU green transition with major infrastructure projects.",
+          source: "Energy Finance",
           url: "#"
         }
       ]
@@ -159,24 +159,24 @@ class NewsService {
       }
     }
     
-    // Default headlines if location not found
+    // Default business headlines if location not found
     return [
       {
-        title: "Global Climate Summit Reaches New Agreement",
-        summary: "195 countries sign pledge to reduce carbon emissions by 50% before 2030.",
-        source: "World News",
+        title: "Global Markets Show Resilience Amid Uncertainty",
+        summary: "Major indices maintain stability despite geopolitical tensions.",
+        source: "World Business Report",
         url: "#"
       },
       {
-        title: "International Space Station Celebrates 25 Years",
-        summary: "The orbiting laboratory has hosted astronauts from 20 countries since 1998.",
-        source: "Space Today",
+        title: "Supply Chain Innovations Reduce Global Logistics Costs",
+        summary: "New technologies helping businesses overcome recent supply chain challenges.",
+        source: "Supply Chain Digest",
         url: "#"
       },
       {
-        title: "Global Economic Forum Predicts Growth in Tech Sector",
-        summary: "AI and renewable energy expected to drive economic expansion next year.",
-        source: "Financial Times",
+        title: "Sustainable Business Practices Driving Corporate Profits",
+        summary: "Companies with strong ESG policies outperforming market averages.",
+        source: "Business Sustainability",
         url: "#"
       }
     ];

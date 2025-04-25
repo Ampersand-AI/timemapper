@@ -58,6 +58,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
       // If Gemini is configured, use it to validate the query
       if (GeminiService.hasApiKey()) {
         const result = await GeminiService.verifyTimeQuery(query);
+        console.log("Gemini validation result:", result);
         
         if (!result.isValid) {
           toast({
@@ -68,6 +69,9 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
           setIsValidating(false);
           return;
         }
+        
+        // If Gemini returned specific timezone info, include it in the submission
+        onQuerySubmit(query);
       } else {
         // Fallback to basic validation if Gemini is not configured
         const parsedQuery = parseTimeQuery(query);
@@ -80,10 +84,11 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
           setIsValidating(false);
           return;
         }
+        
+        // Submit the query if valid
+        onQuerySubmit(query);
       }
-
-      // Submit the query if valid
-      onQuerySubmit(query);
+      
       setQuery('');
     } catch (error) {
       console.error('Error validating query:', error);

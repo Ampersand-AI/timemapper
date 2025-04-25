@@ -47,30 +47,25 @@ const WeatherCard: React.FC<{ weather: WeatherData | null }> = ({ weather }) => 
   );
 };
 
-const NewsSection: React.FC<{ news: NewsItem[] }> = ({ news }) => {
+const BusinessNewsSection: React.FC<{ news: NewsItem[] }> = ({ news }) => {
   if (!news.length) return (
     <div className="neo-inset p-4 animate-pulse h-[140px] flex items-center justify-center text-gray-500">
-      Loading news...
+      Loading business news...
     </div>
   );
 
   return (
     <div className="neo-inset p-4">
-      <h4 className="font-medium mb-3">Local Headlines</h4>
+      <h4 className="font-medium mb-3">Business Headlines</h4>
       
       <ul className="space-y-3">
         {news.map((item, index) => (
           <li key={index} className="text-sm">
-            <a 
-              href={item.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hover:text-neo-my-accent transition-colors"
-            >
+            <div>
               <div className="font-medium">{item.title}</div>
               <div className="text-xs text-gray-400 mt-1">{item.summary}</div>
               <div className="text-xs text-gray-500 mt-1">{item.source}</div>
-            </a>
+            </div>
           </li>
         ))}
       </ul>
@@ -141,8 +136,8 @@ const ContextPanel: React.FC<ContextPanelProps> = ({ fromZone, toZone, scheduled
             </div>
             
             <div>
-              <h4 className="text-sm font-medium mb-4">Local News</h4>
-              <NewsSection news={news} />
+              <h4 className="text-sm font-medium mb-4">Business News</h4>
+              <BusinessNewsSection news={news} />
             </div>
           </div>
         </div>
