@@ -1,4 +1,3 @@
-
 import { format, formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { addHours, differenceInHours } from 'date-fns';
 
@@ -39,6 +38,16 @@ export const timeZones: TimeZoneData[] = [
   { id: 'Europe/Madrid', name: 'Madrid', offset: '+01:00', abbreviation: 'CET', countryName: 'Spain' },
   { id: 'Europe/Rome', name: 'Rome', offset: '+01:00', abbreviation: 'CET', countryName: 'Italy' },
   { id: 'Europe/Amsterdam', name: 'Amsterdam', offset: '+01:00', abbreviation: 'CET', countryName: 'Netherlands' },
+  { id: 'Europe/Stockholm', name: 'Stockholm', offset: '+01:00', abbreviation: 'CET', countryName: 'Sweden' },
+  { id: 'Europe/Copenhagen', name: 'Copenhagen', offset: '+01:00', abbreviation: 'CET', countryName: 'Denmark' },
+  { id: 'Europe/Oslo', name: 'Oslo', offset: '+01:00', abbreviation: 'CET', countryName: 'Norway' },
+  { id: 'Europe/Helsinki', name: 'Helsinki', offset: '+02:00', abbreviation: 'EET', countryName: 'Finland' },
+  { id: 'Europe/Athens', name: 'Athens', offset: '+02:00', abbreviation: 'EET', countryName: 'Greece' },
+  { id: 'Europe/Vienna', name: 'Vienna', offset: '+01:00', abbreviation: 'CET', countryName: 'Austria' },
+  { id: 'Europe/Zurich', name: 'Zurich', offset: '+01:00', abbreviation: 'CET', countryName: 'Switzerland' },
+  { id: 'Europe/Brussels', name: 'Brussels', offset: '+01:00', abbreviation: 'CET', countryName: 'Belgium' },
+  { id: 'Europe/Lisbon', name: 'Lisbon', offset: '+00:00', abbreviation: 'WET', countryName: 'Portugal' },
+  { id: 'Europe/Dublin', name: 'Dublin', offset: '+00:00', abbreviation: 'GMT', countryName: 'Ireland' },
   
   // Asia
   { id: 'Asia/Tokyo', name: 'Tokyo', offset: '+09:00', abbreviation: 'JST', countryName: 'Japan' },
@@ -52,18 +61,33 @@ export const timeZones: TimeZoneData[] = [
   { id: 'Asia/Calcutta', name: 'Calcutta', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
   { id: 'Asia/Delhi', name: 'Delhi', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
   { id: 'Asia/Bangkok', name: 'Bangkok', offset: '+07:00', abbreviation: 'ICT', countryName: 'Thailand' },
+  { id: 'Asia/Jakarta', name: 'Jakarta', offset: '+07:00', abbreviation: 'WIB', countryName: 'Indonesia' },
+  { id: 'Asia/Manila', name: 'Manila', offset: '+08:00', abbreviation: 'PHT', countryName: 'Philippines' },
+  { id: 'Asia/Kuala_Lumpur', name: 'Kuala Lumpur', offset: '+08:00', abbreviation: 'MYT', countryName: 'Malaysia' },
+  { id: 'Asia/Taipei', name: 'Taipei', offset: '+08:00', abbreviation: 'CST', countryName: 'Taiwan' },
+  { id: 'Asia/Riyadh', name: 'Riyadh', offset: '+03:00', abbreviation: 'AST', countryName: 'Saudi Arabia' },
+  { id: 'Asia/Jerusalem', name: 'Jerusalem', offset: '+02:00', abbreviation: 'IST', countryName: 'Israel' },
+  { id: 'Asia/Tehran', name: 'Tehran', offset: '+03:30', abbreviation: 'IRST', countryName: 'Iran' },
   
   // Australia & Pacific
   { id: 'Australia/Sydney', name: 'Sydney', offset: '+11:00', abbreviation: 'AEDT', countryName: 'Australia' },
   { id: 'Australia/Melbourne', name: 'Melbourne', offset: '+11:00', abbreviation: 'AEDT', countryName: 'Australia' },
   { id: 'Australia/Perth', name: 'Perth', offset: '+08:00', abbreviation: 'AWST', countryName: 'Australia' },
+  { id: 'Australia/Brisbane', name: 'Brisbane', offset: '+10:00', abbreviation: 'AEST', countryName: 'Australia' },
+  { id: 'Australia/Adelaide', name: 'Adelaide', offset: '+10:30', abbreviation: 'ACDT', countryName: 'Australia' },
   { id: 'Pacific/Auckland', name: 'Auckland', offset: '+13:00', abbreviation: 'NZDT', countryName: 'New Zealand' },
+  { id: 'Pacific/Fiji', name: 'Fiji', offset: '+13:00', abbreviation: 'FJT', countryName: 'Fiji' },
+  { id: 'Pacific/Honolulu', name: 'Honolulu', offset: '-10:00', abbreviation: 'HST', countryName: 'United States' },
   
   // Africa
   { id: 'Africa/Cairo', name: 'Cairo', offset: '+02:00', abbreviation: 'EET', countryName: 'Egypt' },
   { id: 'Africa/Lagos', name: 'Lagos', offset: '+01:00', abbreviation: 'WAT', countryName: 'Nigeria' },
   { id: 'Africa/Nairobi', name: 'Nairobi', offset: '+03:00', abbreviation: 'EAT', countryName: 'Kenya' },
-  { id: 'Africa/Johannesburg', name: 'Johannesburg', offset: '+02:00', abbreviation: 'SAST', countryName: 'South Africa' }
+  { id: 'Africa/Johannesburg', name: 'Johannesburg', offset: '+02:00', abbreviation: 'SAST', countryName: 'South Africa' },
+  { id: 'Africa/Casablanca', name: 'Casablanca', offset: '+00:00', abbreviation: 'WET', countryName: 'Morocco' },
+  { id: 'Africa/Tunis', name: 'Tunis', offset: '+01:00', abbreviation: 'CET', countryName: 'Tunisia' },
+  { id: 'Africa/Accra', name: 'Accra', offset: '+00:00', abbreviation: 'GMT', countryName: 'Ghana' },
+  { id: 'Africa/Addis_Ababa', name: 'Addis Ababa', offset: '+03:00', abbreviation: 'EAT', countryName: 'Ethiopia' }
 ];
 
 // Enhanced findTimeZone function with better city matching
@@ -81,6 +105,13 @@ export const findTimeZone = (query: string): TimeZoneData | undefined => {
   );
   
   if (exactMatch) return exactMatch;
+  
+  // Try partial matches for country names (for queries like "sweden" without city)
+  const countryMatch = timeZones.find(tz => 
+    (tz.countryName && tz.countryName.toLowerCase() === normalizedQuery)
+  );
+  
+  if (countryMatch) return countryMatch;
   
   // Try partial matches
   const partialMatch = timeZones.find(tz => 
@@ -183,37 +214,87 @@ export const getWorkingHoursRange = (date: Date, timeZoneId: string) => {
   }
 };
 
-// Get geolocation from the browser
-export const getUserGeolocation = (): Promise<{latitude: number, longitude: number}> => {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("Geolocation is not supported by this browser."));
-    } else {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.error("Error getting geolocation:", error);
-          reject(error);
-        }
-      );
+// Get geolocation from the browser - improved with better error handling and IP-based fallback
+export const getUserGeolocation = async (): Promise<{latitude: number, longitude: number}> => {
+  try {
+    // First try browser geolocation API
+    if (navigator.geolocation) {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        });
+      });
+      
+      console.log("Browser geolocation successful:", position.coords);
+      return {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      };
     }
-  });
+  } catch (error) {
+    console.warn("Browser geolocation failed:", error);
+    // Continue to fallback method
+  }
+  
+  try {
+    // Fallback: Try IP-based geolocation
+    const response = await fetch('https://ipapi.co/json/');
+    if (!response.ok) {
+      throw new Error(`IP geolocation failed with status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log("IP-based geolocation successful:", data);
+    
+    if (data.latitude && data.longitude) {
+      return {
+        latitude: data.latitude,
+        longitude: data.longitude
+      };
+    }
+  } catch (ipError) {
+    console.warn("IP-based geolocation failed:", ipError);
+  }
+  
+  // Default fallback coordinates (New York)
+  console.warn("Using default location: New York");
+  return { latitude: 40.7128, longitude: -74.0060 };
 };
 
-// Get timezone from coordinates using browser API
+// Get timezone from coordinates using a combination of methods
 export const getTimezoneFromCoordinates = async (latitude: number, longitude: number): Promise<string> => {
   try {
-    // Try to use the Intl API
+    // Try to use the TimeZoneDB API (free tier)
+    const response = await fetch(`https://api.timezonedb.com/v2.1/get-time-zone?key=NOUW5QYTIN0Y&format=json&by=position&lat=${latitude}&lng=${longitude}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.status === 'OK' && data.zoneName) {
+        console.log("TimeZoneDB API success:", data.zoneName);
+        return data.zoneName;
+      }
+    }
+  } catch (error) {
+    console.warn("TimeZoneDB API error:", error);
+  }
+  
+  try {
+    // Alternative: use the user's browser timezone
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     console.info("Detected timezone from browser:", timezone);
     return timezone;
   } catch (error) {
     console.error("Error getting timezone from browser:", error);
-    return "America/New_York"; // Default fallback
   }
+  
+  // Use longitude to estimate timezone as last resort
+  const hourOffset = Math.round(longitude / 15);
+  const closestZone = timeZones.find(tz => {
+    const tzOffset = parseInt(tz.offset.replace(':', '.').replace('+', '')) || 0;
+    return Math.abs(tzOffset - hourOffset) <= 1;
+  });
+  
+  return closestZone?.id || "America/New_York";
 };

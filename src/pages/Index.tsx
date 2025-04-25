@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import TimeInput from '@/components/TimeInput';
 import TimeTiles, { TimeZoneInfo } from '@/components/TimeTiles';
@@ -15,7 +16,7 @@ import {
 import { formatInTimeZone } from 'date-fns-tz';
 import { toast } from '@/hooks/use-toast';
 import SettingsButton from '@/components/SettingsButton';
-import LlamaService from '@/services/LlamaService';
+import GeminiService from '@/services/GeminiService';
 
 const Index: React.FC = () => {
   const [timeZones, setTimeZones] = useState<TimeZoneInfo[]>([]);
@@ -47,6 +48,8 @@ const Index: React.FC = () => {
             ...zone,
             id: newZone.id,
             name: newZone.name,
+            offset: newZone.offset,
+            abbreviation: newZone.abbreviation,
             time: convertTime(zone.time, oldZoneId, newZoneId).toTime,
             isSource
           };
@@ -87,7 +90,7 @@ const Index: React.FC = () => {
       setIsDetectingLocation(true);
       try {
         // Try to get user's location
-        const coords = await getUserGeolocation().catch(() => null);
+        const coords = await getUserGeolocation();
         
         let detectedTimezone;
         if (coords) {
@@ -134,7 +137,8 @@ const Index: React.FC = () => {
           setTimeZones([{
             id: detectedZone.id,
             name: detectedZone.name,
-            offset: detectedZone.offset, // Make sure to include the offset
+            offset: detectedZone.offset,
+            abbreviation: detectedZone.abbreviation,
             time: now,
             isSource: true
           }]);
@@ -155,7 +159,8 @@ const Index: React.FC = () => {
           setTimeZones([{
             id: defaultZone.id,
             name: defaultZone.name,
-            offset: defaultZone.offset, // Make sure to include the offset
+            offset: defaultZone.offset,
+            abbreviation: defaultZone.abbreviation,
             time: new Date(),
             isSource: true
           }]);
@@ -173,17 +178,21 @@ const Index: React.FC = () => {
     setIsDetectingLocation(true);
     
     try {
-      // Try to use Llama for enhanced query parsing if available
-      if (LlamaService.hasApiKey()) {
-        const llamaResult = await LlamaService.verifyTimeQuery(query);
+      // Reset the display before processing a new query - IMPORTANT CHANGE
+      setShowGraph(false);
+      setShowContext(false);
+      
+      // Try to use Gemini for enhanced query parsing if available
+      if (GeminiService.hasApiKey()) {
+        const geminiResult = await GeminiService.verifyTimeQuery(query);
         
-        if (llamaResult.isValid) {
-          // Use the enhanced data from Llama
-          const fromZoneStr = llamaResult.fromZone || userTimeZone || 'America/New_York';
-          const toZoneStr = llamaResult.toZone;
-          const timeStr = llamaResult.time;
+        if (geminiResult.isValid) {
+          // Use the enhanced data from Gemini
+          const fromZoneStr = geminiResult.fromZone || userTimeZone || 'America/New_York';
+          const toZoneStr = geminiResult.toZone;
+          const timeStr = geminiResult.time;
           
-          console.log("Llama parsed query:", llamaResult);
+          console.log("Gemini parsed query:", geminiResult);
           
           // Find time zones based on the query
           const fromZone = findTimeZone(fromZoneStr);
@@ -216,7 +225,7 @@ const Index: React.FC = () => {
           
           // If only one timezone was specified, use the user's timezone for the other
           if (toZone) {
-            processTimeZones(fromZone, toZone, timeToConvert, llamaResult.isValid);
+            processTimeZones(fromZone, toZone, timeToConvert, geminiResult.isValid);
           } else {
             // If only a single location or time was specified, just show that timezone
             displaySingleTimezone(fromZone, timeToConvert);
@@ -227,7 +236,7 @@ const Index: React.FC = () => {
         }
       }
       
-      // Fallback to basic parsing if Llama is not available or failed
+      // Fallback to basic parsing if Gemini is not available or failed
       const parsedQuery = parseTimeQuery(query);
       
       if (!parsedQuery.isValid) {
@@ -314,8 +323,8 @@ const Index: React.FC = () => {
     const sourceTimeZone = {
       id: fromZone.id,
       name: fromZone.name,
-      offset: fromZone.offset, // Include offset
-      abbreviation: fromZone.abbreviation, // Include abbreviation
+      offset: fromZone.offset,
+      abbreviation: fromZone.abbreviation,
       time: result.fromTime,
       isSource: true
     };
@@ -324,13 +333,13 @@ const Index: React.FC = () => {
     const targetTimeZone = {
       id: toZone.id,
       name: toZone.name,
-      offset: toZone.offset, // Include offset
-      abbreviation: toZone.abbreviation, // Include abbreviation
+      offset: toZone.offset,
+      abbreviation: toZone.abbreviation,
       time: result.toTime,
       isSource: false
     };
     
-    // Update the timezones
+    // Update the timezones - always limit to two time windows
     setTimeZones([sourceTimeZone, targetTimeZone]);
     
     // Set state for graph and context panel
@@ -352,8 +361,8 @@ const Index: React.FC = () => {
     setTimeZones([{
       id: zone.id,
       name: zone.name,
-      offset: zone.offset, // Include offset
-      abbreviation: zone.abbreviation, // Include abbreviation
+      offset: zone.offset,
+      abbreviation: zone.abbreviation,
       time: getCurrentTimeInZone(zone.id),
       isSource: true
     }]);
