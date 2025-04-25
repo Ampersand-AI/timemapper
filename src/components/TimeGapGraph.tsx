@@ -38,68 +38,45 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date }) => {
-  console.log(`Rendering TimeGapGraph with fromZoneId=${fromZoneId}, toZoneId=${toZoneId}`);
-  
   // Get the working hours data for both time zones
   const myHours = getWorkingHoursRange(date, fromZoneId);
   const theirHours = getWorkingHoursRange(date, toZoneId);
   
-  console.log('My hours:', myHours);
-  console.log('Their hours:', theirHours);
-  
-  // Build a mapping between timestamps
-  const hourPairs = myHours.map(myHour => {
-    // Find the corresponding "their" hour that matches the same global time
-    const theirHour = theirHours.find(h => {
-      return Math.abs(h.timestamp - myHour.timestamp) < 60000; // Within 1 minute
-    });
-    
-    return {
-      myHour,
-      theirHour
-    };
-  });
-  
   // Prepare data for the chart
-  const chartData = myHours.map((hourData, index) => {
-    // Find the corresponding "their" hour
-    const theirHourData = theirHours.find(h => {
-      return new Date(h.timestamp).getUTCHours() === new Date(hourData.timestamp).getUTCHours();
-    });
+  const chartData = myHours.map((myHour, index) => {
+    const myWorkingHour = myHour.isWorkingHour ? 1 : 0.3;
     
-    const fromTime = hourData.hour;
-    // Get "their" hour that corresponds to this "my" hour timestamp
-    const matchedTheirHour = theirHours.find(h => {
-      return Math.abs(h.timestamp - hourData.timestamp) < 3600000; // Within an hour
-    });
+    // For each "my hour", find the equivalent "their hour" in the other timezone
+    // that occurs at the same global time (UTC)
+    const theirHourAtSameTime = theirHours.find(theirHour => 
+      // Compare timestamps with some tolerance (within a few minutes)
+      Math.abs(theirHour.timestamp - myHour.timestamp) < 5 * 60 * 1000
+    );
     
-    const toTime = matchedTheirHour ? matchedTheirHour.hour : 'Unknown';
+    const theirWorkingHour = theirHourAtSameTime?.isWorkingHour ? 1 : 0.3;
+    const theirTime = theirHourAtSameTime?.hour || "Unknown";
     
     // Check if this hour is within both working hours
-    const overlapping = hourData.isWorkingHour && (matchedTheirHour?.isWorkingHour || false);
+    const overlapping = myHour.isWorkingHour && 
+                       (theirHourAtSameTime?.isWorkingHour || false);
     
     return {
-      hour: fromTime,
-      from: hourData.isWorkingHour ? 1 : 0.3,
-      to: matchedTheirHour?.isWorkingHour ? 1 : 0.3,
-      fromTime,
-      toTime,
+      hour: myHour.hour,
+      from: myWorkingHour,
+      to: theirWorkingHour,
+      fromTime: myHour.hour,
+      toTime: theirTime,
       overlapping,
-      timestamp: hourData.timestamp
+      timestamp: myHour.timestamp
     };
   });
   
   // Calculate overlapping working hours
   let overlappingHours = 0;
-  myHours.forEach(myHour => {
-    if (myHour.isWorkingHour) {
-      // Find if there's a matching theirHour at the same timestamp that's also a working hour
-      const matchingTheirHour = theirHours.find(h => 
-        Math.abs(h.timestamp - myHour.timestamp) < 3600000 && h.isWorkingHour
-      );
-      if (matchingTheirHour) {
-        overlappingHours++;
-      }
+  
+  chartData.forEach(hour => {
+    if (hour.from > 0.5 && hour.to > 0.5) {
+      overlappingHours++;
     }
   });
   

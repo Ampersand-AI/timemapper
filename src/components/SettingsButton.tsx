@@ -13,27 +13,27 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import DeepSeekService from '@/services/DeepSeekService';
+import GeminiService from '@/services/GeminiService';
 
 const SettingsButton: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [deepseekApiKey, setDeepseekApiKey] = useState(DeepSeekService.getApiKey() || '');
+  const [geminiApiKey, setGeminiApiKey] = useState(GeminiService.getApiKey() || '');
 
   const handleSaveSettings = () => {
     try {
-      // Save DeepSeek API key
-      if (deepseekApiKey.trim()) {
-        DeepSeekService.setApiKey(deepseekApiKey.trim());
+      // Save Gemini API key
+      if (geminiApiKey.trim()) {
+        GeminiService.setApiKey(geminiApiKey.trim());
         toast({
           title: "Settings Saved",
-          description: "DeepSeek API key has been updated",
+          description: "Gemini API key has been updated",
         });
       } else {
         // If field is empty, clear the API key
-        DeepSeekService.setApiKey('');
+        GeminiService.setApiKey('');
         toast({
           title: "Settings Updated",
-          description: "DeepSeek API integration has been disabled",
+          description: "Gemini API integration has been disabled",
           variant: "destructive",
         });
       }
@@ -49,22 +49,22 @@ const SettingsButton: React.FC = () => {
     }
   };
 
-  const testDeepSeekAPI = async () => {
+  const testGeminiAPI = async () => {
     try {
-      if (!deepseekApiKey.trim()) {
+      if (!geminiApiKey.trim()) {
         toast({
           title: "Missing API Key",
-          description: "Please enter your DeepSeek API key first",
+          description: "Please enter your Gemini API key first",
           variant: "destructive",
         });
         return;
       }
 
       // Set the API key temporarily
-      DeepSeekService.setApiKey(deepseekApiKey.trim());
+      GeminiService.setApiKey(geminiApiKey.trim());
 
       // Test with a simple query
-      const result = await DeepSeekService.verifyTimeQuery("Test query for DeepSeek API");
+      const result = await GeminiService.verifyTimeQuery("Test query for Gemini API");
 
       if (result.error) {
         toast({
@@ -75,11 +75,11 @@ const SettingsButton: React.FC = () => {
       } else {
         toast({
           title: "API Test Successful",
-          description: "Connection to DeepSeek API is working",
+          description: "Connection to Gemini API is working",
         });
       }
     } catch (error) {
-      console.error('DeepSeek API test error:', error);
+      console.error('Gemini API test error:', error);
       toast({
         title: "API Test Failed",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -110,12 +110,12 @@ const SettingsButton: React.FC = () => {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="deepseekApiKey">DeepSeek API Key</Label>
+              <Label htmlFor="geminiApiKey">Gemini API Key</Label>
               <Input
-                id="deepseekApiKey"
-                value={deepseekApiKey}
-                onChange={(e) => setDeepseekApiKey(e.target.value)}
-                placeholder="Enter your DeepSeek API key"
+                id="geminiApiKey"
+                value={geminiApiKey}
+                onChange={(e) => setGeminiApiKey(e.target.value)}
+                placeholder="Enter your Gemini API key"
                 className="neo-inset bg-neo-inset text-white"
                 type="password"
               />
@@ -127,10 +127,10 @@ const SettingsButton: React.FC = () => {
             <Button 
               type="button" 
               variant="outline" 
-              onClick={testDeepSeekAPI}
+              onClick={testGeminiAPI}
               className="w-full"
             >
-              Test DeepSeek API
+              Test Gemini API
             </Button>
           </div>
 

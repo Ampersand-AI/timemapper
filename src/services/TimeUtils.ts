@@ -74,10 +74,7 @@ export const findTimeZone = (query: string): TimeZoneData | undefined => {
 // Format a date to a specific timezone
 export const formatToTimeZone = (date: Date, timeZoneId: string, formatString: string = 'h:mm a') => {
   try {
-    console.log(`Formatting ${date.toISOString()} to ${timeZoneId} with format ${formatString}`);
-    const formatted = formatInTimeZone(date, timeZoneId, formatString);
-    console.log(`Formatted result: ${formatted}`);
-    return formatted;
+    return formatInTimeZone(date, timeZoneId, formatString);
   } catch (error) {
     console.error(`Error formatting time to zone ${timeZoneId}:`, error);
     return 'Error';
@@ -101,37 +98,27 @@ export const convertTime = (
   const fromZone = timeZones.find(tz => tz.id === fromZoneId) || timeZones[0];
   const toZone = timeZones.find(tz => tz.id === toZoneId) || timeZones[0];
   
-  console.log(`Source zone: ${fromZone.name} (${fromZone.id})`);
-  console.log(`Target zone: ${toZone.name} (${toZone.id})`);
-  
   try {
-    // Create a new Date object for the time
-    const utcTime = new Date(sourceTime);
+    // Convert to UTC first and then to target timezone to ensure accuracy
+    // Create zonedTime objects from the source time in their respective timezones
+    const sourceZonedTime = toZonedTime(sourceTime, fromZoneId);
     
-    // Get the source time correctly formatted in its timezone
-    const sourceZonedTime = toZonedTime(utcTime, fromZoneId);
-    console.log(`Source zoned time: ${sourceZonedTime.toISOString()}`);
+    // Convert the time to the target timezone while preserving the same wall-clock time
+    const targetTime = new Date(sourceTime);
+    const targetZonedTime = toZonedTime(targetTime, toZoneId);
     
-    // Convert to target timezone
-    const targetZonedTime = formatInTimeZone(utcTime, toZoneId, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-    console.log(`Target formatted: ${targetZonedTime}`);
-    
-    const targetDate = new Date(targetZonedTime);
-    console.log(`Target date: ${targetDate.toISOString()}`);
-    
-    // Calculate the time difference in hours
-    const timeGap = differenceInHours(targetDate, sourceZonedTime);
-    console.log(`Time gap between zones: ${timeGap} hours`);
+    // Calculate time gap (difference between the two times)
+    const timeGap = differenceInHours(targetZonedTime, sourceZonedTime);
     
     return {
       fromZone,
       toZone,
       fromTime: sourceZonedTime,
-      toTime: targetDate,
+      toTime: targetZonedTime,
       timeGap
     };
   } catch (error) {
-    console.error('Error in conversion:', error);
+    console.error('Error in time conversion:', error);
     throw new Error(`Failed to convert time: ${error}`);
   }
 };
@@ -140,32 +127,67 @@ export const convertTime = (
 export const getWorkingHoursRange = (date: Date, timeZoneId: string) => {
   const hoursData = [];
   
-  // Get current date in the specified timezone
-  const zonedDate = toZonedTime(date, timeZoneId);
-  console.log(`Zoned date for ${timeZoneId}: ${zonedDate.toISOString()}`);
-  
-  // Create a date at the start of the working day in the target timezone
-  const baseDate = new Date(zonedDate);
-  baseDate.setHours(0, 0, 0, 0); // Start at midnight local time
-  
-  console.log(`Base date for ${timeZoneId}: ${baseDate.toISOString()}`);
-  
-  // Generate 24 hours for a full day
-  for (let i = 0; i < 24; i++) {
-    const currentHour = addHours(baseDate, i);
-    const hourIn12Format = formatInTimeZone(currentHour, timeZoneId, 'h a'); // 12-hour format with AM/PM
+  try {
+    // Get current date in the specified timezone
+    const zonedDate = toZonedTime(date, timeZoneId);
     
-    // Convert the hour to its true timestamp
-    const hourTimestamp = currentHour.getTime();
+    // Create a date at the start of the day in the target timezone
+    const baseDate = new Date(zonedDate);
+    baseDate.setHours(0, 0, 0, 0); // Start at midnight local time
     
-    hoursData.push({
-      hour: hourIn12Format,
-      timestamp: hourTimestamp,
-      isWorkingHour: i >= 9 && i <= 17, // 9AM to 5PM as working hours
-      rawHour: currentHour
-    });
+    // Generate 24 hours for a full day
+    for (let i = 0; i < 24; i++) {
+      const currentHour = addHours(baseDate, i);
+      const hourIn12Format = formatInTimeZone(currentHour, timeZoneId, 'h a'); // 12-hour format with AM/PM
+      
+      hoursData.push({
+        hour: hourIn12Format,
+        timestamp: currentHour.getTime(),
+        isWorkingHour: i >= 9 && i <= 17, // 9AM to 5PM as working hours
+        rawHour: currentHour
+      });
+    }
+    
+    return hoursData;
+  } catch (error) {
+    console.error(`Error generating hours range for ${timeZoneId}:`, error);
+    return hoursData;
   }
-  
-  console.log(`Generated ${hoursData.length} hours for ${timeZoneId}`);
-  return hoursData;
+};
+
+// Get geolocation from the browser
+export const getUserGeolocation = (): Promise<{latitude: number, longitude: number}> => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation is not supported by this browser."));
+    } else {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error("Error getting geolocation:", error);
+          reject(error);
+        }
+      );
+    }
+  });
+};
+
+// Get timezone from coordinates using Timezone API
+export const getTimezoneFromCoordinates = async (latitude: number, longitude: number): Promise<string> => {
+  try {
+    // Try to use the Intl API to get the timezone (modern browsers)
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    console.log("Detected timezone from browser:", timezone);
+    return timezone;
+  } catch (error) {
+    console.error("Error getting timezone from browser:", error);
+    
+    // Fallback to default timezone if we can't detect it
+    return "America/New_York";
+  }
 };

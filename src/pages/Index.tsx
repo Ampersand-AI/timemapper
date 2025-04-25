@@ -1,10 +1,18 @@
+
 import React, { useState, useEffect } from 'react';
 import TimeInput from '@/components/TimeInput';
 import TimeTiles, { TimeZoneInfo } from '@/components/TimeTiles';
 import TimeGapGraph from '@/components/TimeGapGraph';
 import ContextPanel from '@/components/ContextPanel';
 import { parseTimeQuery } from '@/services/ChatParser';
-import { findTimeZone, convertTime, getCurrentTimeInZone, timeZones } from '@/services/TimeUtils';
+import {
+  findTimeZone,
+  convertTime,
+  getCurrentTimeInZone,
+  timeZones,
+  getUserGeolocation,
+  getTimezoneFromCoordinates
+} from '@/services/TimeUtils';
 import { toast } from '@/hooks/use-toast';
 import SettingsButton from '@/components/SettingsButton';
 
@@ -16,6 +24,7 @@ const Index: React.FC = () => {
   const [toZoneId, setToZoneId] = useState('');
   const [scheduledTime, setScheduledTime] = useState(new Date());
   const [userTimeZone, setUserTimeZone] = useState('');
+  const [isDetectingLocation, setIsDetectingLocation] = useState(true);
   
   // Handle timezone changes from the cards
   const handleTimeZoneChange = (oldZoneId: string, newZoneId: string) => {
@@ -50,14 +59,28 @@ const Index: React.FC = () => {
   
   // Auto-detect user's timezone on component mount
   useEffect(() => {
-    try {
-      const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
-      if (browserTimeZone) {
-        const detectedZone = timeZones.find(tz => tz.id === browserTimeZone);
+    async function detectUserLocation() {
+      setIsDetectingLocation(true);
+      try {
+        // Try to get user's location
+        const coords = await getUserGeolocation().catch(() => null);
         
-        if (detectedZone) {
+        let detectedTimezone;
+        if (coords) {
+          // Get timezone from coordinates
+          detectedTimezone = await getTimezoneFromCoordinates(coords.latitude, coords.longitude);
+        } else {
+          // Fallback to browser's timezone
+          detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        }
+        
+        if (detectedTimezone) {
+          const detectedZone = timeZones.find(tz => tz.id === detectedTimezone) 
+            || timeZones.find(tz => tz.id.includes(detectedTimezone)) 
+            || timeZones[0];
+          
           setUserTimeZone(detectedZone.id);
+          
           // Set initial timezone display with current time
           const now = new Date();
           setTimeZones([{
@@ -73,10 +96,27 @@ const Index: React.FC = () => {
             description: `Your timezone is set to ${detectedZone.name} (${detectedZone.id})`,
           });
         }
+      } catch (error) {
+        console.error('Error detecting timezone:', error);
+        
+        // Fallback to a default timezone if detection fails
+        const defaultZone = findTimeZone('America/New_York');
+        if (defaultZone) {
+          setUserTimeZone(defaultZone.id);
+          setTimeZones([{
+            id: defaultZone.id,
+            name: defaultZone.name,
+            time: new Date(),
+            isSource: true
+          }]);
+          setFromZoneId(defaultZone.id);
+        }
+      } finally {
+        setIsDetectingLocation(false);
       }
-    } catch (error) {
-      console.error('Error detecting timezone:', error);
     }
+
+    detectUserLocation();
   }, []);
 
   const handleQuerySubmit = (query: string) => {
@@ -196,7 +236,11 @@ const Index: React.FC = () => {
           <TimeInput onQuerySubmit={handleQuerySubmit} />
         </div>
         
-        {timeZones.length > 0 && (
+        {isDetectingLocation ? (
+          <div className="text-center py-10">
+            <p className="text-gray-300">Detecting your location...</p>
+          </div>
+        ) : (
           <TimeTiles 
             timeZones={timeZones} 
             onTimeZoneChange={handleTimeZoneChange}

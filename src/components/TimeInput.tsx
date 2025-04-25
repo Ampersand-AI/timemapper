@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import VoiceInputService from '@/services/VoiceInput';
 import { parseTimeQuery } from '@/services/ChatParser';
-import DeepSeekService from '@/services/DeepSeekService';
+import GeminiService from '@/services/GeminiService';
 
 interface TimeInputProps {
   onQuerySubmit: (query: string) => void;
@@ -55,9 +55,9 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     setIsValidating(true);
 
     try {
-      // If DeepSeek is configured, use it to validate the query
-      if (DeepSeekService.hasApiKey()) {
-        const result = await DeepSeekService.verifyTimeQuery(query);
+      // If Gemini is configured, use it to validate the query
+      if (GeminiService.hasApiKey()) {
+        const result = await GeminiService.verifyTimeQuery(query);
         
         if (!result.isValid) {
           toast({
@@ -69,7 +69,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
           return;
         }
       } else {
-        // Fallback to basic validation if DeepSeek is not configured
+        // Fallback to basic validation if Gemini is not configured
         const parsedQuery = parseTimeQuery(query);
         if (!parsedQuery.isValid) {
           toast({
@@ -125,11 +125,11 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             // Auto-stop voice recording
             stopVoiceInput();
             
-            // If DeepSeek is configured, use it to validate the query
-            if (DeepSeekService.hasApiKey()) {
+            // If Gemini is configured, use it to validate the query
+            if (GeminiService.hasApiKey()) {
               try {
                 setIsValidating(true);
-                const result = await DeepSeekService.verifyTimeQuery(transcript);
+                const result = await GeminiService.verifyTimeQuery(transcript);
                 
                 if (result.isValid) {
                   // Auto-submit only if query is valid
@@ -157,7 +157,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
                 }
               }
             } else {
-              // Use basic validation if DeepSeek is not configured
+              // Use basic validation if Gemini is not configured
               const parsedQuery = parseTimeQuery(transcript);
               if (parsedQuery.isValid) {
                 setTimeout(() => {

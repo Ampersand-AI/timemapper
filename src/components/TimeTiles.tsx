@@ -4,7 +4,6 @@ import { format } from 'date-fns';
 import { formatToTimeZone } from '@/services/TimeUtils';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,11 +50,12 @@ const TimeTile: React.FC<{
                   <Settings className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[200px]">
+              <DropdownMenuContent align="end" className="w-[200px] bg-neo-background border border-gray-700">
                 {timeZones.map((zone) => (
                   <DropdownMenuItem
                     key={zone.id}
                     onClick={() => handleTimeZoneChange(zone.id)}
+                    className="text-white hover:bg-gray-700"
                   >
                     {zone.name}
                   </DropdownMenuItem>
@@ -80,11 +80,14 @@ const TimeTile: React.FC<{
               {formatToTimeZone(timeZone.time, timeZone.id, 'a')}
             </div>
           </div>
-          <div className="text-lg text-gray-300 mt-2 font-medium">
-            {format(timeZone.time, 'EEEE')}
-          </div>
-          <div className="text-sm text-gray-400">
-            {format(timeZone.time, 'MMMM d, yyyy')}
+          
+          <div className="mt-4 text-center">
+            <div className="text-xl text-white mt-2 font-medium">
+              {formatToTimeZone(timeZone.time, timeZone.id, 'EEEE')}
+            </div>
+            <div className="text-lg text-gray-300">
+              {formatToTimeZone(timeZone.time, timeZone.id, 'MMMM d, yyyy')}
+            </div>
           </div>
         </div>
       </div>
