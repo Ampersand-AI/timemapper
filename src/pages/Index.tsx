@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import TimeInput from '@/components/TimeInput';
 import TimeTiles, { TimeZoneInfo } from '@/components/TimeTiles';
@@ -18,33 +17,68 @@ const Index: React.FC = () => {
   const [scheduledTime, setScheduledTime] = useState(new Date());
   const [userTimeZone, setUserTimeZone] = useState('');
   
+  // Handle timezone changes from the cards
+  const handleTimeZoneChange = (oldZoneId: string, newZoneId: string) => {
+    const updatedTimeZones = timeZones.map(zone => {
+      if (zone.id === oldZoneId) {
+        const newZone = findTimeZone(newZoneId);
+        if (newZone) {
+          return {
+            ...zone,
+            id: newZone.id,
+            name: newZone.name,
+            time: convertTime(zone.time, oldZoneId, newZoneId).toTime
+          };
+        }
+      }
+      return zone;
+    });
+    
+    setTimeZones(updatedTimeZones);
+    
+    if (fromZoneId === oldZoneId) {
+      setFromZoneId(newZoneId);
+    } else if (toZoneId === oldZoneId) {
+      setToZoneId(newZoneId);
+    }
+    
+    toast({
+      title: "Timezone Updated",
+      description: `Successfully changed timezone to ${newZoneId}`,
+    });
+  };
+  
   // Auto-detect user's timezone on component mount
   useEffect(() => {
     try {
-      // Get browser's timezone
       const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
       if (browserTimeZone) {
-        // Find the matching timezone in our database
         const detectedZone = timeZones.find(tz => tz.id === browserTimeZone);
         
         if (detectedZone) {
           setUserTimeZone(detectedZone.id);
+          // Set initial timezone display with current time
+          const now = new Date();
+          setTimeZones([{
+            id: detectedZone.id,
+            name: detectedZone.name,
+            time: now,
+            isSource: true
+          }]);
+          setFromZoneId(detectedZone.id);
+          
           toast({
             title: "Timezone Detected",
             description: `Your timezone is set to ${detectedZone.name} (${detectedZone.id})`,
           });
-        } else {
-          // If exact match not found, use a fallback timezone
-          setUserTimeZone('America/New_York');
         }
       }
     } catch (error) {
       console.error('Error detecting timezone:', error);
-      setUserTimeZone('America/New_York'); // Fallback
     }
   }, []);
-  
+
   const handleQuerySubmit = (query: string) => {
     // Parse the natural language query
     const parsedQuery = parseTimeQuery(query);
@@ -163,7 +197,10 @@ const Index: React.FC = () => {
         </div>
         
         {timeZones.length > 0 && (
-          <TimeTiles timeZones={timeZones} />
+          <TimeTiles 
+            timeZones={timeZones} 
+            onTimeZoneChange={handleTimeZoneChange}
+          />
         )}
         
         {showGraph && fromZoneId && toZoneId && (
