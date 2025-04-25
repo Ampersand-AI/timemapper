@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { formatToTimeZone } from '@/services/TimeUtils';
 import { Button } from '@/components/ui/button';
@@ -53,17 +54,21 @@ const TimeTile: React.FC<{
         const query = `Time in ${customZone}`;
         const result = await GeminiService.verifyTimeQuery(query);
         
-        if (result.fromZone) {
-          // AI identified a timezone
-          handleTimeZoneChange(result.fromZone);
-          setCustomZone('');
-          toast({
-            title: "Timezone Found",
-            description: `Matched ${customZone} to ${result.fromZone}`,
-          });
-        } else if (result.isValid) {
-          // AI says it's valid but didn't return a specific timezone - try parsing it ourselves
-          fallbackSearch();
+        if (result.isValid) {
+          // AI identified a timezone or location
+          const targetZone = result.toZone || result.fromZone;
+          
+          if (targetZone) {
+            handleTimeZoneChange(targetZone);
+            setCustomZone('');
+            toast({
+              title: "Timezone Found",
+              description: `Matched ${customZone} to ${targetZone}`,
+            });
+          } else {
+            // If AI said it's valid but didn't return a specific timezone
+            fallbackSearch();
+          }
         } else {
           toast({
             title: "Location Not Found",
@@ -84,29 +89,81 @@ const TimeTile: React.FC<{
   };
 
   const fallbackSearch = () => {
-    // Basic timezone search logic
+    // Enhanced timezone search logic
     const searchTerm = customZone.toLowerCase();
-    const matchingZone = timeZones.find(tz => 
+    
+    // First try to find by country name (exact match)
+    const countryMatch = timeZones.find(tz => 
+      tz.countryName && tz.countryName.toLowerCase() === searchTerm
+    );
+    
+    if (countryMatch) {
+      handleTimeZoneChange(countryMatch.id);
+      setCustomZone('');
+      toast({
+        title: "Country Found",
+        description: `Matched ${customZone} to ${countryMatch.name}, ${countryMatch.countryName}`,
+      });
+      return;
+    }
+    
+    // Try finding by city name or timezone ID
+    const exactMatch = timeZones.find(tz => 
+      tz.name.toLowerCase() === searchTerm ||
+      tz.id.toLowerCase().includes(searchTerm) ||
+      (tz.abbreviation && tz.abbreviation.toLowerCase() === searchTerm)
+    );
+    
+    if (exactMatch) {
+      handleTimeZoneChange(exactMatch.id);
+      setCustomZone('');
+      toast({
+        title: "City Found",
+        description: `Found exact match for ${customZone}`,
+      });
+      return;
+    }
+    
+    // Try partial matching
+    const partialMatch = timeZones.find(tz => 
       tz.name.toLowerCase().includes(searchTerm) ||
       tz.id.toLowerCase().includes(searchTerm) ||
-      (tz.abbreviation && tz.abbreviation.toLowerCase() === searchTerm) ||
+      (tz.abbreviation && tz.abbreviation.toLowerCase().includes(searchTerm)) ||
       (tz.countryName && tz.countryName.toLowerCase().includes(searchTerm))
     );
     
-    if (matchingZone) {
-      handleTimeZoneChange(matchingZone.id);
+    if (partialMatch) {
+      handleTimeZoneChange(partialMatch.id);
       setCustomZone('');
       toast({
-        title: "Timezone Found",
-        description: `Matched ${customZone} to ${matchingZone.name}`,
+        title: "Location Found",
+        description: `Matched ${customZone} to ${partialMatch.name}`,
       });
-    } else {
-      toast({
-        title: "Location Not Found",
-        description: "Could not find a matching timezone. Try a different city or connect an AI API for better matching",
-        variant: "destructive",
-      });
+      return;
     }
+    
+    // If still no match, try fuzzy matching by extracting city names
+    const fuzzyMatch = timeZones.find(tz => {
+      const cityPart = tz.id.split('/').pop()?.toLowerCase().replace(/_/g, ' ');
+      return cityPart?.includes(searchTerm);
+    });
+    
+    if (fuzzyMatch) {
+      handleTimeZoneChange(fuzzyMatch.id);
+      setCustomZone('');
+      toast({
+        title: "Location Found",
+        description: `Matched ${customZone} to ${fuzzyMatch.name}`,
+      });
+      return;
+    }
+    
+    // No match found
+    toast({
+      title: "Location Not Found",
+      description: "Could not find a matching timezone. Try a different city or connect an AI API for better matching",
+      variant: "destructive",
+    });
   };
   
   return (
@@ -126,7 +183,7 @@ const TimeTile: React.FC<{
               <DropdownMenuContent align="end" className="w-[300px] bg-neo-background border border-gray-700 max-h-[400px] overflow-y-auto">
                 <div className="p-2 sticky top-0 bg-neo-background z-10 border-b border-gray-700">
                   <Input
-                    placeholder="Enter city, state, or country..."
+                    placeholder="Enter city, state, country or timezone..."
                     value={customZone}
                     onChange={(e) => setCustomZone(e.target.value)}
                     className="mb-2"

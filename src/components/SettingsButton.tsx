@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import GeminiService, { AVAILABLE_MODELS } from '@/services/GeminiService';
 
@@ -130,20 +129,25 @@ const SettingsButton: React.FC = () => {
 
             <div className="space-y-2">
               <Label>Select Model</Label>
-              <RadioGroup 
-                value={selectedModel} 
-                onValueChange={setSelectedModel}
-                className="space-y-2"
-              >
-                {AVAILABLE_MODELS.map((model) => (
-                  <div key={model.id} className="flex items-center space-x-2">
-                    <RadioGroupItem value={model.id} id={model.id} />
-                    <Label htmlFor={model.id} className="text-sm">
-                      {model.name} - {model.description}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger className="neo-inset bg-neo-inset text-white">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent className="bg-neo-background border border-gray-700">
+                  {AVAILABLE_MODELS.map((model) => (
+                    <SelectItem 
+                      key={model.id} 
+                      value={model.id}
+                      className="text-white hover:bg-gray-700"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{model.name}</span>
+                        <span className="text-xs text-gray-400">{model.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <Button 
@@ -171,4 +175,3 @@ const SettingsButton: React.FC = () => {
 };
 
 export default SettingsButton;
-
