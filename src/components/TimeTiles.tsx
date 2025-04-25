@@ -19,6 +19,8 @@ export interface TimeZoneInfo {
   name: string;
   time: Date;
   isSource?: boolean;
+  offset?: string; // Added missing offset property
+  abbreviation?: string; // Also adding abbreviation for completeness
 }
 
 export interface TimeTilesProps {

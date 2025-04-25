@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import TimeInput from '@/components/TimeInput';
 import TimeTiles, { TimeZoneInfo } from '@/components/TimeTiles';
@@ -135,6 +134,7 @@ const Index: React.FC = () => {
           setTimeZones([{
             id: detectedZone.id,
             name: detectedZone.name,
+            offset: detectedZone.offset, // Make sure to include the offset
             time: now,
             isSource: true
           }]);
@@ -155,6 +155,7 @@ const Index: React.FC = () => {
           setTimeZones([{
             id: defaultZone.id,
             name: defaultZone.name,
+            offset: defaultZone.offset, // Make sure to include the offset
             time: new Date(),
             isSource: true
           }]);
@@ -313,6 +314,8 @@ const Index: React.FC = () => {
     const sourceTimeZone = {
       id: fromZone.id,
       name: fromZone.name,
+      offset: fromZone.offset, // Include offset
+      abbreviation: fromZone.abbreviation, // Include abbreviation
       time: result.fromTime,
       isSource: true
     };
@@ -321,6 +324,8 @@ const Index: React.FC = () => {
     const targetTimeZone = {
       id: toZone.id,
       name: toZone.name,
+      offset: toZone.offset, // Include offset
+      abbreviation: toZone.abbreviation, // Include abbreviation
       time: result.toTime,
       isSource: false
     };
@@ -347,6 +352,8 @@ const Index: React.FC = () => {
     setTimeZones([{
       id: zone.id,
       name: zone.name,
+      offset: zone.offset, // Include offset
+      abbreviation: zone.abbreviation, // Include abbreviation
       time: getCurrentTimeInZone(zone.id),
       isSource: true
     }]);
