@@ -17,146 +17,83 @@ export interface ConvertedTime {
   timeGap: number;
 }
 
-// Expanded timezone database with common zones and cities
+// Enhanced timezone database with expanded cities
 export const timeZones: TimeZoneData[] = [
-  { id: 'America/New_York', name: 'New York', offset: '-05:00', abbreviation: 'EST' },
-  { id: 'America/Los_Angeles', name: 'Los Angeles', offset: '-08:00', abbreviation: 'PST' },
-  { id: 'America/Chicago', name: 'Chicago', offset: '-06:00', abbreviation: 'CST' },
-  { id: 'America/Denver', name: 'Denver', offset: '-07:00', abbreviation: 'MST' },
-  { id: 'America/Phoenix', name: 'Phoenix', offset: '-07:00', abbreviation: 'MST' },
-  { id: 'America/Toronto', name: 'Toronto', offset: '-05:00', abbreviation: 'EST' },
-  { id: 'America/Vancouver', name: 'Vancouver', offset: '-08:00', abbreviation: 'PST' },
-  { id: 'America/Mexico_City', name: 'Mexico City', offset: '-06:00', abbreviation: 'CST' },
-  { id: 'America/Sao_Paulo', name: 'Sao Paulo', offset: '-03:00', abbreviation: 'BRT' },
-  { id: 'America/Buenos_Aires', name: 'Buenos Aires', offset: '-03:00', abbreviation: 'ART' },
-  { id: 'Europe/London', name: 'London', offset: '+00:00', abbreviation: 'GMT' },
-  { id: 'Europe/Paris', name: 'Paris', offset: '+01:00', abbreviation: 'CET' },
-  { id: 'Europe/Berlin', name: 'Berlin', offset: '+01:00', abbreviation: 'CET' },
-  { id: 'Europe/Madrid', name: 'Madrid', offset: '+01:00', abbreviation: 'CET' },
-  { id: 'Europe/Rome', name: 'Rome', offset: '+01:00', abbreviation: 'CET' },
-  { id: 'Europe/Amsterdam', name: 'Amsterdam', offset: '+01:00', abbreviation: 'CET' },
-  { id: 'Europe/Moscow', name: 'Moscow', offset: '+03:00', abbreviation: 'MSK' },
-  { id: 'Europe/Stockholm', name: 'Stockholm', offset: '+01:00', abbreviation: 'CET' },
-  { id: 'Europe/Oslo', name: 'Oslo', offset: '+01:00', abbreviation: 'CET' },
-  { id: 'Europe/Copenhagen', name: 'Copenhagen', offset: '+01:00', abbreviation: 'CET' },
-  { id: 'Europe/Zurich', name: 'Zurich', offset: '+01:00', abbreviation: 'CET' },
-  { id: 'Asia/Tokyo', name: 'Tokyo', offset: '+09:00', abbreviation: 'JST' },
-  { id: 'Asia/Kolkata', name: 'India', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
+  // Americas
+  { id: 'America/New_York', name: 'New York', offset: '-05:00', abbreviation: 'EST', countryName: 'United States' },
+  { id: 'America/Los_Angeles', name: 'Los Angeles', offset: '-08:00', abbreviation: 'PST', countryName: 'United States' },
+  { id: 'America/Chicago', name: 'Chicago', offset: '-06:00', abbreviation: 'CST', countryName: 'United States' },
+  { id: 'America/Denver', name: 'Denver', offset: '-07:00', abbreviation: 'MST', countryName: 'United States' },
+  { id: 'America/Phoenix', name: 'Phoenix', offset: '-07:00', abbreviation: 'MST', countryName: 'United States' },
+  { id: 'America/Toronto', name: 'Toronto', offset: '-05:00', abbreviation: 'EST', countryName: 'Canada' },
+  { id: 'America/Vancouver', name: 'Vancouver', offset: '-08:00', abbreviation: 'PST', countryName: 'Canada' },
+  { id: 'America/Mexico_City', name: 'Mexico City', offset: '-06:00', abbreviation: 'CST', countryName: 'Mexico' },
+  { id: 'America/Sao_Paulo', name: 'Sao Paulo', offset: '-03:00', abbreviation: 'BRT', countryName: 'Brazil' },
+  { id: 'America/Buenos_Aires', name: 'Buenos Aires', offset: '-03:00', abbreviation: 'ART', countryName: 'Argentina' },
+  
+  // Europe
+  { id: 'Europe/London', name: 'London', offset: '+00:00', abbreviation: 'GMT', countryName: 'United Kingdom' },
+  { id: 'Europe/Paris', name: 'Paris', offset: '+01:00', abbreviation: 'CET', countryName: 'France' },
+  { id: 'Europe/Berlin', name: 'Berlin', offset: '+01:00', abbreviation: 'CET', countryName: 'Germany' },
+  { id: 'Europe/Madrid', name: 'Madrid', offset: '+01:00', abbreviation: 'CET', countryName: 'Spain' },
+  { id: 'Europe/Rome', name: 'Rome', offset: '+01:00', abbreviation: 'CET', countryName: 'Italy' },
+  { id: 'Europe/Amsterdam', name: 'Amsterdam', offset: '+01:00', abbreviation: 'CET', countryName: 'Netherlands' },
+  
+  // Asia
+  { id: 'Asia/Tokyo', name: 'Tokyo', offset: '+09:00', abbreviation: 'JST', countryName: 'Japan' },
   { id: 'Asia/Shanghai', name: 'Shanghai', offset: '+08:00', abbreviation: 'CST', countryName: 'China' },
-  { id: 'Asia/Hong_Kong', name: 'Hong Kong', offset: '+08:00', abbreviation: 'HKT' },
-  { id: 'Asia/Singapore', name: 'Singapore', offset: '+08:00', abbreviation: 'SGT' },
-  { id: 'Asia/Seoul', name: 'Seoul', offset: '+09:00', abbreviation: 'KST' },
-  { id: 'Asia/Dubai', name: 'Dubai', offset: '+04:00', abbreviation: 'GST' },
-  { id: 'Asia/Bangkok', name: 'Bangkok', offset: '+07:00', abbreviation: 'ICT' },
-  { id: 'Asia/Jakarta', name: 'Jakarta', offset: '+07:00', abbreviation: 'WIB' },
-  { id: 'Australia/Sydney', name: 'Sydney', offset: '+11:00', abbreviation: 'AEDT' },
-  { id: 'Australia/Melbourne', name: 'Melbourne', offset: '+11:00', abbreviation: 'AEDT' },
-  { id: 'Australia/Perth', name: 'Perth', offset: '+08:00', abbreviation: 'AWST' },
-  { id: 'Australia/Brisbane', name: 'Brisbane', offset: '+10:00', abbreviation: 'AEST' },
-  { id: 'Pacific/Auckland', name: 'Auckland', offset: '+13:00', abbreviation: 'NZDT' },
-  { id: 'Africa/Johannesburg', name: 'Johannesburg', offset: '+02:00', abbreviation: 'SAST' },
-  { id: 'Africa/Cairo', name: 'Cairo', offset: '+02:00', abbreviation: 'EET' },
-  { id: 'Africa/Lagos', name: 'Lagos', offset: '+01:00', abbreviation: 'WAT' },
-  { id: 'Africa/Nairobi', name: 'Nairobi', offset: '+03:00', abbreviation: 'EAT' },
-  { id: 'Etc/UTC', name: 'UTC', offset: '+00:00', abbreviation: 'UTC' },
+  { id: 'Asia/Hong_Kong', name: 'Hong Kong', offset: '+08:00', abbreviation: 'HKT', countryName: 'China' },
+  { id: 'Asia/Singapore', name: 'Singapore', offset: '+08:00', abbreviation: 'SGT', countryName: 'Singapore' },
+  { id: 'Asia/Seoul', name: 'Seoul', offset: '+09:00', abbreviation: 'KST', countryName: 'South Korea' },
+  { id: 'Asia/Dubai', name: 'Dubai', offset: '+04:00', abbreviation: 'GST', countryName: 'United Arab Emirates' },
+  { id: 'Asia/Mumbai', name: 'Mumbai', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
+  { id: 'Asia/Bangkok', name: 'Bangkok', offset: '+07:00', abbreviation: 'ICT', countryName: 'Thailand' },
+  
+  // Australia & Pacific
+  { id: 'Australia/Sydney', name: 'Sydney', offset: '+11:00', abbreviation: 'AEDT', countryName: 'Australia' },
+  { id: 'Australia/Melbourne', name: 'Melbourne', offset: '+11:00', abbreviation: 'AEDT', countryName: 'Australia' },
+  { id: 'Australia/Perth', name: 'Perth', offset: '+08:00', abbreviation: 'AWST', countryName: 'Australia' },
+  { id: 'Pacific/Auckland', name: 'Auckland', offset: '+13:00', abbreviation: 'NZDT', countryName: 'New Zealand' },
+  
+  // Africa
+  { id: 'Africa/Cairo', name: 'Cairo', offset: '+02:00', abbreviation: 'EET', countryName: 'Egypt' },
+  { id: 'Africa/Lagos', name: 'Lagos', offset: '+01:00', abbreviation: 'WAT', countryName: 'Nigeria' },
+  { id: 'Africa/Nairobi', name: 'Nairobi', offset: '+03:00', abbreviation: 'EAT', countryName: 'Kenya' },
+  { id: 'Africa/Johannesburg', name: 'Johannesburg', offset: '+02:00', abbreviation: 'SAST', countryName: 'South Africa' }
 ];
 
-// Find a timezone by various inputs (name, abbreviation, country, city)
+// Enhanced findTimeZone function with better city matching
 export const findTimeZone = (query: string): TimeZoneData | undefined => {
   if (!query) return undefined;
   
   const normalizedQuery = query.trim().toLowerCase();
   
-  console.log(`Searching for time zone: "${normalizedQuery}"`);
-  
-  // Try to find by exact ID first
+  // Try exact matches first
   const exactMatch = timeZones.find(tz => 
-    tz.id.toLowerCase() === normalizedQuery
-  );
-  
-  if (exactMatch) {
-    console.log(`Found exact match: ${exactMatch.id}`);
-    return exactMatch;
-  }
-  
-  // Try to find by exact abbreviation (case insensitive)
-  const exactAbbrev = timeZones.find(tz =>
-    tz.abbreviation.toLowerCase() === normalizedQuery
-  );
-  
-  if (exactAbbrev) {
-    console.log(`Found exact abbreviation match: ${exactAbbrev.id}`);
-    return exactAbbrev;
-  }
-  
-  // Try to find by exact name (case insensitive)
-  const exactName = timeZones.find(tz =>
-    tz.name.toLowerCase() === normalizedQuery || 
+    tz.name.toLowerCase() === normalizedQuery ||
+    tz.id.toLowerCase() === normalizedQuery ||
+    tz.abbreviation.toLowerCase() === normalizedQuery ||
     (tz.countryName && tz.countryName.toLowerCase() === normalizedQuery)
   );
   
-  if (exactName) {
-    console.log(`Found exact name match: ${exactName.id}`);
-    return exactName;
-  }
+  if (exactMatch) return exactMatch;
   
-  // Try to find by city name within timezone ID
-  const cityInId = timeZones.find(tz => {
-    // Extract city name from "Continent/City" format
-    const cityPart = tz.id.split('/').pop()?.toLowerCase().replace('_', ' ');
-    return cityPart === normalizedQuery;
-  });
-  
-  if (cityInId) {
-    console.log(`Found city in ID match: ${cityInId.id}`);
-    return cityInId;
-  }
-  
-  // Try to find by partial match with more specific prioritization
-  // 1. Check if query is in the name
-  const nameMatch = timeZones.find(tz => 
-    tz.name.toLowerCase().includes(normalizedQuery)
+  // Try partial matches
+  const partialMatch = timeZones.find(tz => 
+    tz.name.toLowerCase().includes(normalizedQuery) ||
+    tz.id.toLowerCase().includes(normalizedQuery) ||
+    (tz.countryName && tz.countryName.toLowerCase().includes(normalizedQuery))
   );
   
-  if (nameMatch) {
-    console.log(`Found partial name match: ${nameMatch.id}`);
-    return nameMatch;
-  }
+  if (partialMatch) return partialMatch;
   
-  // 2. Check if query is in the ID
-  const idMatch = timeZones.find(tz => 
-    tz.id.toLowerCase().includes(normalizedQuery)
-  );
-  
-  if (idMatch) {
-    console.log(`Found partial ID match: ${idMatch.id}`);
-    return idMatch;
-  }
-  
-  // 3. Check country name
-  const countryMatch = timeZones.find(tz => 
-    tz.countryName?.toLowerCase().includes(normalizedQuery)
-  );
-  
-  if (countryMatch) {
-    console.log(`Found country match: ${countryMatch.id}`);
-    return countryMatch;
-  }
-  
-  // No match found - last attempt with very fuzzy matching
+  // Try fuzzy matching for city names in timezone IDs
   const fuzzyMatch = timeZones.find(tz => {
-    // Split ID into parts and check if any part contains the query
-    const idParts = tz.id.toLowerCase().split(/[\/\_\-\s]/);
-    return idParts.some(part => part.includes(normalizedQuery));
+    const cityPart = tz.id.split('/').pop()?.toLowerCase().replace(/_/g, ' ');
+    return cityPart?.includes(normalizedQuery);
   });
   
-  if (fuzzyMatch) {
-    console.log(`Found fuzzy match: ${fuzzyMatch.id}`);
-    return fuzzyMatch;
-  }
-  
-  console.log(`No time zone found for query: "${normalizedQuery}"`);
-  return undefined;
+  return fuzzyMatch;
 };
 
 // Format a date to a specific timezone

@@ -1,5 +1,6 @@
+
 import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { getWorkingHoursRange } from '@/services/TimeUtils';
 import { Clock } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -11,104 +12,84 @@ interface TimeGapGraphProps {
   date: Date;
 }
 
-// Custom tooltip to show the time difference
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    const hour = label;
     const fromZoneData = payload.find((p: any) => p.dataKey === 'from');
     const toZoneData = payload.find((p: any) => p.dataKey === 'to');
     
     return (
-      <div className="neo-raised p-3">
-        <p className="text-xs text-gray-400">{hour}</p>
+      <div className="bg-gray-800 border border-gray-700 p-3 rounded-lg shadow-lg">
+        <p className="text-gray-400 text-xs font-medium mb-1">{label}</p>
         {fromZoneData && (
-          <p className="text-neo-my-accent text-xs">
+          <p className="text-neo-my-accent text-sm">
             Your time: {fromZoneData.payload.fromTime}
           </p>
         )}
         {toZoneData && (
-          <p className="text-neo-their-accent text-xs">
+          <p className="text-neo-their-accent text-sm">
             Their time: {toZoneData.payload.toTime}
+          </p>
+        )}
+        {fromZoneData?.payload.overlapping && (
+          <p className="text-green-400 text-xs mt-1">
+            ✓ Overlapping working hours
           </p>
         )}
       </div>
     );
   }
-  
   return null;
 };
 
 const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date }) => {
-  console.log("Rendering TimeGapGraph with:", { fromZoneId, toZoneId, date: date.toISOString() });
-  
-  // Memoize the chart data to avoid recalculations on re-renders
   const { chartData, overlappingHours, exactTimeDiff } = useMemo(() => {
-    // Get the working hours data for both time zones
     const myHours = getWorkingHoursRange(date, fromZoneId);
     const theirHours = getWorkingHoursRange(date, toZoneId);
     
-    // Calculate exact time difference between the two zones
+    // Calculate exact time difference
     const now = new Date();
-    const fromDate = new Date(now);
-    const toDate = new Date(now);
+    const fromTime = formatInTimeZone(now, fromZoneId, "yyyy-MM-dd'T'HH:mm:ssXXX");
+    const toTime = formatInTimeZone(now, toZoneId, "yyyy-MM-dd'T'HH:mm:ssXXX");
     
-    // Format the dates in their respective timezones
-    const fromDateFormatted = formatInTimeZone(fromDate, fromZoneId, 'yyyy-MM-dd HH:mm:ss');
-    const toDateFormatted = formatInTimeZone(toDate, toZoneId, 'yyyy-MM-dd HH:mm:ss');
+    const exactTimeDiff = differenceInHours(new Date(toTime), new Date(fromTime));
     
-    // Parse back to get actual timezone-adjusted Date objects
-    const fromDateAdjusted = new Date(fromDateFormatted);
-    const toDateAdjusted = new Date(toDateFormatted);
-    
-    // Calculate the exact difference in hours (can be decimal)
-    const exactTimeDiff = Math.abs((toDateAdjusted.getTime() - fromDateAdjusted.getTime()) / (1000 * 60 * 60));
-    
-    // Prepare data for the chart with exact time differences
-    const chartData = myHours.map((myHour) => {
+    const chartData = myHours.map(myHour => {
       const myWorkingHour = myHour.isWorkingHour ? 1 : 0.3;
       
-      // Find the equivalent "their hour" at the same moment in time
-      const myHourTimestamp = myHour.timestamp;
-      const theirHourAtSameTime = theirHours.find(theirHour => {
-        const timeDiff = Math.abs(theirHour.timestamp - myHourTimestamp);
-        return timeDiff < 10 * 60 * 1000; // Within 10 minutes to account for any minor calculation differences
-      });
+      // Find their hour at the same moment
+      const theirHourAtSameTime = theirHours.find(theirHour => 
+        Math.abs(theirHour.timestamp - myHour.timestamp) < 600000 // 10 minutes tolerance
+      );
       
       const theirWorkingHour = theirHourAtSameTime?.isWorkingHour ? 1 : 0.3;
-      const theirTime = theirHourAtSameTime?.hour || "Unknown";
       
       return {
         hour: myHour.hour,
         from: myWorkingHour,
         to: theirWorkingHour,
         fromTime: myHour.hour,
-        toTime: theirTime,
+        toTime: theirHourAtSameTime?.hour || 'N/A',
         overlapping: myHour.isWorkingHour && theirHourAtSameTime?.isWorkingHour
       };
     });
     
-    // Calculate exact overlapping working hours
     const workingHoursOverlap = chartData.filter(hour => hour.overlapping).length;
     
-    return {
-      chartData, 
-      overlappingHours: workingHoursOverlap,
-      exactTimeDiff
-    };
+    return { chartData, overlappingHours: workingHoursOverlap, exactTimeDiff };
   }, [fromZoneId, toZoneId, date]);
   
   return (
-    <div className="neo-raised p-4 mt-6 text-white">
-      <h3 className="text-lg font-medium mb-2 flex items-center">
+    <div className="neo-raised p-6 mt-6">
+      <h3 className="text-lg font-medium mb-4 flex items-center">
         <Clock className="mr-2" size={20} />
         Time Overlap Analysis
       </h3>
       
-      <div className="h-64 mt-4">
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
-            margin={{ top: 10, right: 10, left: -30, bottom: 0 }}
+            margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
           >
             <defs>
               <linearGradient id="colorFrom" x1="0" y1="0" x2="0" y2="1">
@@ -122,49 +103,50 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
             </defs>
             <XAxis 
               dataKey="hour" 
-              tick={{ fill: '#aaa', fontSize: 10 }}
-              interval={1} 
+              tick={{ fill: '#aaa', fontSize: 12 }}
+              interval={2}
             />
-            <YAxis hide={true} />
+            <YAxis hide />
             <Tooltip content={<CustomTooltip />} />
+            <ReferenceLine y={0.5} stroke="#666" strokeDasharray="3 3" />
             <Area 
               type="monotone" 
               dataKey="from" 
               stackId="1"
               stroke="#2AB8A6" 
-              fillOpacity={1}
               fill="url(#colorFrom)" 
+              strokeWidth={2}
             />
             <Area 
               type="monotone" 
               dataKey="to" 
               stackId="2"
               stroke="#FF914D" 
-              fillOpacity={1}
               fill="url(#colorTo)" 
+              strokeWidth={2}
             />
           </AreaChart>
         </ResponsiveContainer>
       </div>
       
-      <div className="flex justify-between mt-2 text-sm">
-        <div>
+      <div className="flex justify-between mt-4 text-sm">
+        <div className="flex items-center">
           <span className="inline-block w-3 h-3 rounded-full bg-neo-my-accent mr-2"></span>
           Your working hours
         </div>
-        <div>
+        <div className="flex items-center">
           <span className="inline-block w-3 h-3 rounded-full bg-neo-their-accent mr-2"></span>
           Their working hours
         </div>
       </div>
       
-      <div className="mt-4 text-center">
-        <p className="text-gray-400">
-          You have exactly <span className="text-white font-medium">{overlappingHours} hours</span> of overlapping working time.
-          <br />
-          <span className="text-sm mt-1 block">
-            Time difference: <span className="text-white font-medium">{exactTimeDiff.toFixed(1)} hours</span>
-          </span>
+      <div className="mt-6 text-center">
+        <p className="text-xl font-medium mb-2">
+          {overlappingHours} hours of overlap
+        </p>
+        <p className="text-gray-400 text-sm">
+          Time difference: {Math.abs(exactTimeDiff)} hours
+          {exactTimeDiff > 0 ? ' ahead' : ' behind'}
         </p>
       </div>
     </div>
@@ -172,3 +154,4 @@ const TimeGapGraph: React.FC<TimeGapGraphProps> = ({ fromZoneId, toZoneId, date 
 };
 
 export default TimeGapGraph;
+
