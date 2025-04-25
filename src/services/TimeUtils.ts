@@ -39,6 +39,20 @@ export const timeZones: TimeZoneData[] = [
   { id: 'Europe/Madrid', name: 'Madrid', offset: '+01:00', abbreviation: 'CET', countryName: 'Spain' },
   { id: 'Europe/Rome', name: 'Rome', offset: '+01:00', abbreviation: 'CET', countryName: 'Italy' },
   { id: 'Europe/Amsterdam', name: 'Amsterdam', offset: '+01:00', abbreviation: 'CET', countryName: 'Netherlands' },
+  { id: 'Europe/Stockholm', name: 'Stockholm', offset: '+01:00', abbreviation: 'CET', countryName: 'Sweden' },
+  { id: 'Europe/Oslo', name: 'Oslo', offset: '+01:00', abbreviation: 'CET', countryName: 'Norway' },
+  { id: 'Europe/Copenhagen', name: 'Copenhagen', offset: '+01:00', abbreviation: 'CET', countryName: 'Denmark' },
+  { id: 'Europe/Brussels', name: 'Brussels', offset: '+01:00', abbreviation: 'CET', countryName: 'Belgium' },
+  { id: 'Europe/Vienna', name: 'Vienna', offset: '+01:00', abbreviation: 'CET', countryName: 'Austria' },
+  { id: 'Europe/Zurich', name: 'Zurich', offset: '+01:00', abbreviation: 'CET', countryName: 'Switzerland' },
+  { id: 'Europe/Lisbon', name: 'Lisbon', offset: '+00:00', abbreviation: 'WET', countryName: 'Portugal' },
+  { id: 'Europe/Dublin', name: 'Dublin', offset: '+00:00', abbreviation: 'GMT', countryName: 'Ireland' },
+  { id: 'Europe/Helsinki', name: 'Helsinki', offset: '+02:00', abbreviation: 'EET', countryName: 'Finland' },
+  { id: 'Europe/Warsaw', name: 'Warsaw', offset: '+01:00', abbreviation: 'CET', countryName: 'Poland' },
+  { id: 'Europe/Prague', name: 'Prague', offset: '+01:00', abbreviation: 'CET', countryName: 'Czech Republic' },
+  { id: 'Europe/Budapest', name: 'Budapest', offset: '+01:00', abbreviation: 'CET', countryName: 'Hungary' },
+  { id: 'Europe/Athens', name: 'Athens', offset: '+02:00', abbreviation: 'EET', countryName: 'Greece' },
+  { id: 'Europe/Moscow', name: 'Moscow', offset: '+03:00', abbreviation: 'MSK', countryName: 'Russia' },
   
   // Asia
   { id: 'Asia/Tokyo', name: 'Tokyo', offset: '+09:00', abbreviation: 'JST', countryName: 'Japan' },
@@ -52,27 +66,48 @@ export const timeZones: TimeZoneData[] = [
   { id: 'Asia/Calcutta', name: 'Calcutta', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
   { id: 'Asia/Delhi', name: 'Delhi', offset: '+05:30', abbreviation: 'IST', countryName: 'India' },
   { id: 'Asia/Bangkok', name: 'Bangkok', offset: '+07:00', abbreviation: 'ICT', countryName: 'Thailand' },
+  { id: 'Asia/Jakarta', name: 'Jakarta', offset: '+07:00', abbreviation: 'WIB', countryName: 'Indonesia' },
+  { id: 'Asia/Manila', name: 'Manila', offset: '+08:00', abbreviation: 'PHT', countryName: 'Philippines' },
+  { id: 'Asia/Kuala_Lumpur', name: 'Kuala Lumpur', offset: '+08:00', abbreviation: 'MYT', countryName: 'Malaysia' },
+  { id: 'Asia/Tehran', name: 'Tehran', offset: '+03:30', abbreviation: 'IRST', countryName: 'Iran' },
+  { id: 'Asia/Riyadh', name: 'Riyadh', offset: '+03:00', abbreviation: 'AST', countryName: 'Saudi Arabia' },
+  { id: 'Asia/Jerusalem', name: 'Jerusalem', offset: '+02:00', abbreviation: 'IST', countryName: 'Israel' },
+  { id: 'Asia/Istanbul', name: 'Istanbul', offset: '+03:00', abbreviation: 'TRT', countryName: 'Turkey' },
+  { id: 'Asia/Doha', name: 'Doha', offset: '+03:00', abbreviation: 'AST', countryName: 'Qatar' },
+  { id: 'Asia/Baghdad', name: 'Baghdad', offset: '+03:00', abbreviation: 'AST', countryName: 'Iraq' },
+  { id: 'Asia/Beirut', name: 'Beirut', offset: '+02:00', abbreviation: 'EET', countryName: 'Lebanon' },
+  { id: 'Asia/Karachi', name: 'Karachi', offset: '+05:00', abbreviation: 'PKT', countryName: 'Pakistan' },
+  { id: 'Asia/Dhaka', name: 'Dhaka', offset: '+06:00', abbreviation: 'BST', countryName: 'Bangladesh' },
+  { id: 'Asia/Ho_Chi_Minh', name: 'Ho Chi Minh City', offset: '+07:00', abbreviation: 'ICT', countryName: 'Vietnam' },
+  { id: 'Asia/Taipei', name: 'Taipei', offset: '+08:00', abbreviation: 'CST', countryName: 'Taiwan' },
   
   // Australia & Pacific
   { id: 'Australia/Sydney', name: 'Sydney', offset: '+11:00', abbreviation: 'AEDT', countryName: 'Australia' },
   { id: 'Australia/Melbourne', name: 'Melbourne', offset: '+11:00', abbreviation: 'AEDT', countryName: 'Australia' },
   { id: 'Australia/Perth', name: 'Perth', offset: '+08:00', abbreviation: 'AWST', countryName: 'Australia' },
+  { id: 'Australia/Brisbane', name: 'Brisbane', offset: '+10:00', abbreviation: 'AEST', countryName: 'Australia' },
+  { id: 'Australia/Adelaide', name: 'Adelaide', offset: '+10:30', abbreviation: 'ACDT', countryName: 'Australia' },
   { id: 'Pacific/Auckland', name: 'Auckland', offset: '+13:00', abbreviation: 'NZDT', countryName: 'New Zealand' },
+  { id: 'Pacific/Fiji', name: 'Fiji', offset: '+12:00', abbreviation: 'FJT', countryName: 'Fiji' },
   
   // Africa
   { id: 'Africa/Cairo', name: 'Cairo', offset: '+02:00', abbreviation: 'EET', countryName: 'Egypt' },
   { id: 'Africa/Lagos', name: 'Lagos', offset: '+01:00', abbreviation: 'WAT', countryName: 'Nigeria' },
   { id: 'Africa/Nairobi', name: 'Nairobi', offset: '+03:00', abbreviation: 'EAT', countryName: 'Kenya' },
-  { id: 'Africa/Johannesburg', name: 'Johannesburg', offset: '+02:00', abbreviation: 'SAST', countryName: 'South Africa' }
+  { id: 'Africa/Johannesburg', name: 'Johannesburg', offset: '+02:00', abbreviation: 'SAST', countryName: 'South Africa' },
+  { id: 'Africa/Casablanca', name: 'Casablanca', offset: '+00:00', abbreviation: 'WET', countryName: 'Morocco' },
+  { id: 'Africa/Algiers', name: 'Algiers', offset: '+01:00', abbreviation: 'CET', countryName: 'Algeria' },
+  { id: 'Africa/Tunis', name: 'Tunis', offset: '+01:00', abbreviation: 'CET', countryName: 'Tunisia' },
+  { id: 'Africa/Accra', name: 'Accra', offset: '+00:00', abbreviation: 'GMT', countryName: 'Ghana' }
 ];
 
-// Enhanced findTimeZone function with better city matching
+// Enhanced findTimeZone function with better city and country matching
 export const findTimeZone = (query: string): TimeZoneData | undefined => {
   if (!query) return undefined;
   
   const normalizedQuery = query.trim().toLowerCase();
   
-  // Try exact matches first
+  // First check for exact full matches
   const exactMatch = timeZones.find(tz => 
     tz.name.toLowerCase() === normalizedQuery ||
     tz.id.toLowerCase() === normalizedQuery ||
@@ -82,14 +117,33 @@ export const findTimeZone = (query: string): TimeZoneData | undefined => {
   
   if (exactMatch) return exactMatch;
   
-  // Try partial matches
-  const partialMatch = timeZones.find(tz => 
-    tz.name.toLowerCase().includes(normalizedQuery) ||
-    tz.id.toLowerCase().includes(normalizedQuery) ||
-    (tz.countryName && tz.countryName.toLowerCase().includes(normalizedQuery))
+  // Check for country name matches 
+  const countryMatch = timeZones.find(tz => 
+    tz.countryName && tz.countryName.toLowerCase() === normalizedQuery
   );
   
-  if (partialMatch) return partialMatch;
+  if (countryMatch) return countryMatch;
+  
+  // Try partial matches for cities
+  const partialCityMatch = timeZones.find(tz => 
+    tz.name.toLowerCase().includes(normalizedQuery)
+  );
+  
+  if (partialCityMatch) return partialCityMatch;
+  
+  // Try partial matches for countries
+  const partialCountryMatch = timeZones.find(tz => 
+    tz.countryName && tz.countryName.toLowerCase().includes(normalizedQuery)
+  );
+  
+  if (partialCountryMatch) return partialCountryMatch;
+  
+  // Try partial matches for IDs
+  const idMatch = timeZones.find(tz => 
+    tz.id.toLowerCase().includes(normalizedQuery)
+  );
+  
+  if (idMatch) return idMatch;
   
   // Try fuzzy matching for city names in timezone IDs
   const fuzzyMatch = timeZones.find(tz => {
@@ -199,21 +253,63 @@ export const getUserGeolocation = (): Promise<{latitude: number, longitude: numb
         (error) => {
           console.error("Error getting geolocation:", error);
           reject(error);
+        },
+        { 
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
         }
       );
     }
   });
 };
 
-// Get timezone from coordinates using browser API
-export const getTimezoneFromCoordinates = async (latitude: number, longitude: number): Promise<string> => {
+// Improved timezone detection from browser and system info
+export const getTimezoneFromCoordinates = async (): Promise<string> => {
   try {
-    // Try to use the Intl API
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    console.info("Detected timezone from browser:", timezone);
-    return timezone;
+    // First try browser's Intl API (most accurate way when available)
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    if (browserTimezone && browserTimezone !== 'UTC' && !browserTimezone.startsWith('Etc/')) {
+      console.info("Detected timezone from browser:", browserTimezone);
+      
+      // Verify if this is a valid timezone in our list
+      const foundTimezone = timeZones.find(tz => tz.id === browserTimezone);
+      if (foundTimezone) {
+        return browserTimezone;
+      }
+    }
+    
+    // If browser doesn't provide a usable timezone or we can't find it in our list,
+    // try to approximate based on offset
+    const nowDate = new Date();
+    const offset = -nowDate.getTimezoneOffset(); // Convert to minutes, positive is east of UTC
+    const offsetHours = offset / 60;
+    
+    // Format the offset like "+08:00" or "-05:00"
+    const formattedOffset = (offsetHours >= 0 ? '+' : '') + 
+      String(Math.floor(Math.abs(offsetHours))).padStart(2, '0') + ':' +
+      String(Math.abs(offset % 60)).padStart(2, '0');
+    
+    console.info("Using system offset:", formattedOffset);
+    
+    // Find closest timezone by offset
+    const matchingTimeZones = timeZones.filter(tz => tz.offset === formattedOffset);
+    
+    if (matchingTimeZones.length > 0) {
+      // Try to find one with a major city/country
+      const preferredZones = matchingTimeZones.filter(tz => 
+        ['New_York', 'Los_Angeles', 'Chicago', 'London', 'Paris', 'Berlin', 'Tokyo', 'Sydney']
+          .some(major => tz.id.includes(major))
+      );
+      
+      return preferredZones.length > 0 ? preferredZones[0].id : matchingTimeZones[0].id;
+    }
+    
+    console.warn("Could not find timezone by offset, using default");
+    return "America/New_York"; // Default fallback
   } catch (error) {
-    console.error("Error getting timezone from browser:", error);
+    console.error("Error detecting timezone:", error);
     return "America/New_York"; // Default fallback
   }
 };
