@@ -1,4 +1,3 @@
-
 const LOCAL_STORAGE_API_KEY = 'openai_api_key';
 const LOCAL_STORAGE_MODEL = 'openai_model';
 
@@ -13,6 +12,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
   { id: 'gpt-4', name: 'GPT-4', description: 'Powerful and precise' }
 ];
 
+// Update the interface to ensure it matches what we're using in TimeInput.tsx
 interface VerificationResult {
   isValid: boolean;
   suggestions?: string;

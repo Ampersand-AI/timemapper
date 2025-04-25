@@ -13,6 +13,17 @@ interface TimeInputProps {
   onQuerySubmit: (query: string) => void;
 }
 
+// Define interface for verification results to ensure type safety
+interface VerificationResult {
+  isValid: boolean;
+  suggestions?: string;
+  fromZone?: string;
+  toZone?: string;
+  time?: string;
+  date?: string;
+  error?: string;
+}
+
 const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -57,7 +68,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
 
     try {
       // First try LlamaService if available
-      let result = { isValid: false };
+      let result: VerificationResult = { isValid: false };
       
       if (LlamaService.hasApiKey()) {
         result = await LlamaService.verifyTimeQuery(query);
@@ -66,14 +77,15 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
         result = await OpenAIService.verifyTimeQuery(query);
       } else {
         // Fallback to basic parsing if no AI services are available
-        result = { isValid: parseTimeQuery(query).isValid };
+        const parsedResult = parseTimeQuery(query);
+        result = { isValid: parsedResult.isValid };
       }
       
       if (!result.isValid && (LlamaService.hasApiKey() || OpenAIService.hasApiKey())) {
         // Let's try once more by reformulating as a time query
         const enhancedQuery = `What time is it in ${query}?`;
         
-        let enhancedResult = { isValid: false };
+        let enhancedResult: VerificationResult = { isValid: false };
         if (LlamaService.hasApiKey()) {
           enhancedResult = await LlamaService.verifyTimeQuery(enhancedQuery);
         } else if (OpenAIService.hasApiKey()) {
@@ -163,7 +175,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             if (LlamaService.hasApiKey() || OpenAIService.hasApiKey()) {
               try {
                 setIsValidating(true);
-                let result = { isValid: false };
+                let result: VerificationResult = { isValid: false };
                 
                 if (LlamaService.hasApiKey()) {
                   result = await LlamaService.verifyTimeQuery(transcript);
