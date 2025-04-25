@@ -33,6 +33,7 @@ export const timeZones: TimeZoneData[] = [
   { id: 'Asia/Singapore', name: 'Singapore', offset: '+08:00', abbreviation: 'SGT' },
   { id: 'Australia/Sydney', name: 'Sydney', offset: '+11:00', abbreviation: 'AEDT' },
   { id: 'Australia/Melbourne', name: 'Melbourne', offset: '+11:00', abbreviation: 'AEDT' },
+  { id: 'Pacific/Auckland', name: 'Auckland', offset: '+13:00', abbreviation: 'NZDT' },
   { id: 'Etc/UTC', name: 'UTC', offset: '+00:00', abbreviation: 'UTC' },
 ];
 
@@ -104,12 +105,11 @@ export const convertTime = (
   
   try {
     // First convert the input date to the source timezone to ensure it's correct
-    // This fixes the issue where the input date might not be in the source timezone
     const sourceDate = toZonedTime(date, fromZoneId);
     console.log(`Source date in ${fromZoneId}: ${sourceDate.toISOString()}`);
     
     // Then convert from source timezone to target timezone
-    const targetDate = toZonedTime(sourceDate, toZoneId);
+    const targetDate = toZonedTime(date, toZoneId);
     console.log(`Target date in ${toZoneId}: ${targetDate.toISOString()}`);
     
     // Calculate the time difference in hours
@@ -129,7 +129,7 @@ export const convertTime = (
   }
 };
 
-// Get a range of working hours for visualization
+// Get a range of working hours for visualization (9AM to 5PM as working hours)
 export const getWorkingHoursRange = (date: Date, timeZoneId: string) => {
   const hoursData = [];
   
@@ -148,7 +148,7 @@ export const getWorkingHoursRange = (date: Date, timeZoneId: string) => {
     hoursData.push({
       hour: hourIn12Format,
       timestamp: currentHour.getTime(),
-      isWorkingHour: i >= 3 && i <= 11, // 9AM to 5PM as working hours
+      isWorkingHour: i >= 3 && i <= 11, // 9AM to 5PM as working hours (indices 3-11 representing hours 9-5)
       rawHour: currentHour
     });
   }

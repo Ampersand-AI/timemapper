@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TimeInput from '@/components/TimeInput';
 import TimeTiles, { TimeZoneInfo } from '@/components/TimeTiles';
 import TimeGapGraph from '@/components/TimeGapGraph';
 import ContextPanel from '@/components/ContextPanel';
 import { parseTimeQuery } from '@/services/ChatParser';
-import { findTimeZone, convertTime, getCurrentTimeInZone } from '@/services/TimeUtils';
+import { findTimeZone, convertTime, getCurrentTimeInZone, timeZones } from '@/services/TimeUtils';
 import { toast } from '@/hooks/use-toast';
 
 const Index: React.FC = () => {
@@ -15,6 +15,34 @@ const Index: React.FC = () => {
   const [fromZoneId, setFromZoneId] = useState('');
   const [toZoneId, setToZoneId] = useState('');
   const [scheduledTime, setScheduledTime] = useState(new Date());
+  const [userTimeZone, setUserTimeZone] = useState('');
+  
+  // Auto-detect user's timezone on component mount
+  useEffect(() => {
+    try {
+      // Get browser's timezone
+      const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      if (browserTimeZone) {
+        // Find the matching timezone in our database
+        const detectedZone = timeZones.find(tz => tz.id === browserTimeZone);
+        
+        if (detectedZone) {
+          setUserTimeZone(detectedZone.id);
+          toast({
+            title: "Timezone Detected",
+            description: `Your timezone is set to ${detectedZone.name} (${detectedZone.id})`,
+          });
+        } else {
+          // If exact match not found, use a fallback timezone
+          setUserTimeZone('America/New_York');
+        }
+      }
+    } catch (error) {
+      console.error('Error detecting timezone:', error);
+      setUserTimeZone('America/New_York'); // Fallback
+    }
+  }, []);
   
   const handleQuerySubmit = (query: string) => {
     // Parse the natural language query
@@ -35,7 +63,7 @@ const Index: React.FC = () => {
       // Find time zones based on the query
       const fromZone = parsedQuery.fromZone 
         ? findTimeZone(parsedQuery.fromZone)
-        : findTimeZone('America/New_York'); // Default if not specified
+        : findTimeZone(userTimeZone || 'America/New_York'); // Use detected timezone or default
       
       const toZone = parsedQuery.toZone 
         ? findTimeZone(parsedQuery.toZone)
@@ -73,46 +101,33 @@ const Index: React.FC = () => {
       console.log(`Converting time: ${timeToConvert.toISOString()} from ${fromZone.id} to ${toZone.id}`);
       
       // Determine which is the source time zone (user's time) and which is the target
-      let sourceZoneId, targetZoneId;
+      const sourceZoneId = parsedQuery.fromZone || userTimeZone || 'America/New_York';
+      const targetZoneId = parsedQuery.toZone || toZone.id;
       
-      if (parsedQuery.isLocalToRemote) {
-        // User specified their local time zone (e.g., "I am in India")
-        sourceZoneId = fromZone.id;
-        targetZoneId = toZone.id;
-        console.log("Local to remote conversion. Source:", sourceZoneId, "Target:", targetZoneId);
-      } else {
-        // Default case - we're converting from the first mentioned to the second mentioned
-        sourceZoneId = fromZone.id;
-        targetZoneId = toZone.id;
-        console.log("Standard conversion. Source:", sourceZoneId, "Target:", targetZoneId);
-      }
-      
-      // Perform the conversion correctly based on source and target
-      const result = convertTime(timeToConvert, sourceZoneId, targetZoneId);
+      // Perform the conversion
+      const result = convertTime(timeToConvert, fromZone.id, toZone.id);
       
       console.log("Conversion result:", result);
       
-      // Update the state with the conversion results - ensure correct mapping of source/target
+      // Update the state with the conversion results
       setTimeZones([
         {
-          id: sourceZoneId,
+          id: fromZone.id,
           name: fromZone.name,
-          time: timeToConvert, // Original input time in source zone
+          time: result.fromTime, // Source time
           isSource: true
         },
         {
-          id: targetZoneId,
+          id: toZone.id,
           name: toZone.name,
-          time: result.toTime, // Converted time in target zone
+          time: result.toTime, // Converted time
           isSource: false
         }
       ]);
       
-      console.log("Time zones set:", timeZones);
-      
       // Set state for graph and context panel
-      setFromZoneId(sourceZoneId);
-      setToZoneId(targetZoneId);
+      setFromZoneId(fromZone.id);
+      setToZoneId(toZone.id);
       setScheduledTime(timeToConvert);
       setShowGraph(true);
       setShowContext(true);
@@ -169,6 +184,7 @@ const Index: React.FC = () => {
         
         <div className="text-center mt-10 text-xs text-gray-500">
           TimeMapper 24 – Dark Neo Edition
+          {userTimeZone && <div>Your detected timezone: {userTimeZone}</div>}
         </div>
       </div>
     </div>

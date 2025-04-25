@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic } from 'lucide-react';
+import { Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
@@ -24,6 +24,21 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     }
   }, []);
 
+  // Auto-stop voice recording after 5 seconds of silence
+  useEffect(() => {
+    let silenceTimer: NodeJS.Timeout | null = null;
+    
+    if (isListening) {
+      silenceTimer = setTimeout(() => {
+        stopVoiceInput();
+      }, 5000); // Stop after 5 seconds of silence
+    }
+    
+    return () => {
+      if (silenceTimer) clearTimeout(silenceTimer);
+    };
+  }, [isListening]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
@@ -38,6 +53,12 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     }
   };
 
+  const stopVoiceInput = () => {
+    VoiceInputService.stopListening();
+    setIsListening(false);
+    setPlaceholder('Enter your time zone question...');
+  };
+
   const toggleVoiceInput = () => {
     if (!VoiceInputService.isVoiceSupported()) {
       toast({
@@ -49,9 +70,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     }
     
     if (isListening) {
-      VoiceInputService.stopListening();
-      setIsListening(false);
-      setPlaceholder('Enter your time zone question...');
+      stopVoiceInput();
     } else {
       setPlaceholder('Listening...');
       setIsListening(true);
@@ -106,7 +125,7 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
           onClick={toggleVoiceInput}
           className={`neo-raised p-3 ${isListening ? 'bg-neo-my-accent text-white' : ''}`}
         >
-          <Mic size={20} />
+          {isListening ? <MicOff size={20} /> : <Mic size={20} />}
         </Button>
         
         <Button 

@@ -33,7 +33,7 @@ const TimeTile: React.FC<{ timeZone: TimeZoneInfo }> = ({ timeZone }) => {
       
       <div className="mt-4 text-center">
         <div className="flex justify-center items-center">
-          <div className="text-5xl font-bold">
+          <div className="text-6xl font-bold">
             {formatToTimeZone(timeZone.time, timeZone.id, 'h:mm')}
           </div>
           <div className="text-2xl ml-2 mt-1 font-medium">
