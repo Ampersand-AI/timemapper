@@ -1,5 +1,5 @@
 
-import { format, formatInTimeZone, zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+import { format, formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { addHours, differenceInHours } from 'date-fns';
 
 export interface TimeZoneData {
@@ -53,7 +53,7 @@ export const formatToTimeZone = (date: Date, timeZoneId: string, formatString: s
 
 // Get the current time in a specific timezone
 export const getCurrentTimeInZone = (timeZoneId: string): Date => {
-  return utcToZonedTime(new Date(), timeZoneId);
+  return toZonedTime(new Date(), timeZoneId);
 };
 
 // Convert a time from one timezone to another
@@ -66,10 +66,10 @@ export const convertTime = (
   const toZone = timeZones.find(tz => tz.id === toZoneId) || timeZones[0];
   
   // Convert the time to UTC first
-  const utcTime = zonedTimeToUtc(date, fromZoneId);
+  const utcTime = fromZonedTime(date, fromZoneId);
   
   // Then convert from UTC to target timezone
-  const targetTime = utcToZonedTime(utcTime, toZoneId);
+  const targetTime = toZonedTime(utcTime, toZoneId);
   
   // Calculate the time difference in hours
   const timeGap = differenceInHours(targetTime, date);
@@ -86,8 +86,8 @@ export const convertTime = (
 // Get a range of working hours for visualization
 export const getWorkingHoursRange = (date: Date, timeZoneId: string) => {
   const hoursData = [];
-  const baseDate = utcToZonedTime(
-    zonedTimeToUtc(date, timeZoneId),
+  const baseDate = toZonedTime(
+    fromZonedTime(date, timeZoneId),
     timeZoneId
   );
   

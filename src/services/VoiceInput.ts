@@ -1,12 +1,48 @@
 
 // Voice input using Web Speech API
 
+// Type declarations for Web Speech API
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+  error?: SpeechRecognitionError;
+}
+
+interface SpeechRecognitionError extends Event {
+  error: string;
+  message: string;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+// Global augmentation for Window interface
+declare global {
+  interface Window {
+    SpeechRecognition?: typeof SpeechRecognition;
+    webkitSpeechRecognition?: typeof SpeechRecognition;
+  }
+}
+
 // Type for voice recognition result handlers
 type RecognitionResultHandler = (transcript: string, isFinal: boolean) => void;
 type RecognitionErrorHandler = (error: string) => void;
 
 class VoiceInputService {
-  private recognition: SpeechRecognition | null = null;
+  private recognition: any = null;
   private isSupported = false;
   private isListening = false;
 
@@ -15,8 +51,10 @@ class VoiceInputService {
     
     if (this.isSupported) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      this.recognition = new SpeechRecognition();
-      this.setupRecognition();
+      if (SpeechRecognition) {
+        this.recognition = new SpeechRecognition();
+        this.setupRecognition();
+      }
     }
   }
 
@@ -41,7 +79,7 @@ class VoiceInputService {
     this.isListening = true;
     
     // Set up event handlers
-    this.recognition.onresult = (event) => {
+    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
       const result = event.results[0];
       const transcript = result[0].transcript;
       const isFinal = result.isFinal;
@@ -49,7 +87,7 @@ class VoiceInputService {
       onResult(transcript, isFinal);
     };
     
-    this.recognition.onerror = (event) => {
+    this.recognition.onerror = (event: SpeechRecognitionError) => {
       onError(event.error);
       this.isListening = false;
     };
