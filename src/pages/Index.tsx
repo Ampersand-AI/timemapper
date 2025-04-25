@@ -32,11 +32,22 @@ const Index: React.FC = () => {
       if (zone.id === oldZoneId) {
         const newZone = findTimeZone(newZoneId);
         if (newZone) {
+          const isSource = zone.isSource;
+          
+          // Update the relevant state variables based on which card changed
+          if (isSource) {
+            setFromZoneId(newZoneId);
+            setUserTimeZone(newZoneId);
+          } else {
+            setToZoneId(newZoneId);
+          }
+          
           return {
             ...zone,
             id: newZone.id,
             name: newZone.name,
-            time: convertTime(zone.time, oldZoneId, newZoneId).toTime
+            time: convertTime(zone.time, oldZoneId, newZoneId).toTime,
+            isSource
           };
         }
       }
@@ -45,16 +56,28 @@ const Index: React.FC = () => {
     
     setTimeZones(updatedTimeZones);
     
-    if (fromZoneId === oldZoneId) {
-      setFromZoneId(newZoneId);
-    } else if (toZoneId === oldZoneId) {
-      setToZoneId(newZoneId);
+    // Update the analysis and context if they're already showing
+    if (showGraph && showContext) {
+      updateAnalysisAndContext(updatedTimeZones);
     }
     
     toast({
       title: "Timezone Updated",
       description: `Successfully changed timezone to ${newZoneId}`,
     });
+  };
+  
+  // Function to update analysis and context panels when timezones change
+  const updateAnalysisAndContext = (zones: TimeZoneInfo[]) => {
+    const sourceZone = zones.find(z => z.isSource);
+    const targetZone = zones.find(z => !z.isSource);
+    
+    if (sourceZone && targetZone) {
+      setFromZoneId(sourceZone.id);
+      setToZoneId(targetZone.id);
+      setShowGraph(true);
+      setShowContext(true);
+    }
   };
   
   // Auto-detect user's timezone on component mount
@@ -76,13 +99,13 @@ const Index: React.FC = () => {
         
         if (detectedTimezone) {
           const detectedZone = timeZones.find(tz => tz.id === detectedTimezone) 
-            || timeZones.find(tz => tz.id.includes(detectedTimezone)) 
+            || timeZones.find(tz => tz.id.includes(detectedTimezone.split('/').pop() || '')) 
             || timeZones[0];
           
           setUserTimeZone(detectedZone.id);
           
           // Set initial timezone display with current time
-          const now = new Date();
+          const now = getCurrentTimeInZone(detectedZone.id);
           setTimeZones([{
             id: detectedZone.id,
             name: detectedZone.name,
@@ -180,21 +203,24 @@ const Index: React.FC = () => {
       
       console.log("Conversion result:", result);
       
-      // Update the state with the conversion results
-      setTimeZones([
-        {
-          id: fromZone.id,
-          name: fromZone.name,
-          time: result.fromTime,
-          isSource: true
-        },
-        {
-          id: toZone.id,
-          name: toZone.name,
-          time: result.toTime,
-          isSource: false
-        }
-      ]);
+      // Prepare the timezone info for the user's timezone (source)
+      const sourceTimeZone = {
+        id: fromZone.id,
+        name: fromZone.name,
+        time: result.fromTime,
+        isSource: true
+      };
+      
+      // Prepare the timezone info for the target timezone
+      const targetTimeZone = {
+        id: toZone.id,
+        name: toZone.name,
+        time: result.toTime,
+        isSource: false
+      };
+      
+      // Update the timezones
+      setTimeZones([sourceTimeZone, targetTimeZone]);
       
       // Set state for graph and context panel
       setFromZoneId(fromZone.id);
@@ -202,6 +228,11 @@ const Index: React.FC = () => {
       setScheduledTime(timeToConvert);
       setShowGraph(true);
       setShowContext(true);
+      
+      // Update user timezone if it's a query about their local timezone
+      if (parsedQuery.isLocalToRemote || (!parsedQuery.fromZone && !parsedQuery.toZone)) {
+        setUserTimeZone(fromZone.id);
+      }
       
       // Show success toast
       toast({

@@ -44,24 +44,27 @@ const TimeTile: React.FC<{
             <h3 className={`text-lg font-medium ${isSource ? 'text-gradient-teal' : 'text-gradient-orange'}`}>
               {timeZone.name}
             </h3>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[200px] bg-neo-background border border-gray-700">
-                {timeZones.map((zone) => (
-                  <DropdownMenuItem
-                    key={zone.id}
-                    onClick={() => handleTimeZoneChange(zone.id)}
-                    className="text-white hover:bg-gray-700"
-                  >
-                    {zone.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Only show settings icon on user's time card */}
+            {isSource && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[200px] bg-neo-background border border-gray-700">
+                  {timeZones.map((zone) => (
+                    <DropdownMenuItem
+                      key={zone.id}
+                      onClick={() => handleTimeZoneChange(zone.id)}
+                      className="text-white hover:bg-gray-700"
+                    >
+                      {zone.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
           <p className="text-xs text-gray-400 mt-1">{timeZone.id}</p>
         </div>

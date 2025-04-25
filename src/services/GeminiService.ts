@@ -61,6 +61,8 @@ const GeminiService = {
       });
       
       if (!response.ok) {
+        console.error(`Gemini API error status: ${response.status}`);
+        console.error(`Gemini API error details:`, await response.text());
         throw new Error(`API request failed with status ${response.status}`);
       }
       
