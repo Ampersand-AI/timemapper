@@ -11,12 +11,6 @@ export const AVAILABLE_MODELS: ModelOption[] = [
   { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro', description: 'Fast and efficient' },
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Powerful and precise' },
   { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Quick responses' },
-  { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro Latest', description: 'Latest version' },
-  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash Latest', description: 'Latest fast version' },
-  { id: 'gemini-1.0-pro-latest', name: 'Gemini 1.0 Pro Latest', description: 'Latest 1.0 version' },
-  { id: 'gemini-1.0-pro-vision-latest', name: 'Gemini 1.0 Pro Vision', description: 'Vision capabilities' },
-  { id: 'gemini-1.5-flash-001', name: 'Gemini 1.5 Flash 001', description: 'Specific 001 version' },
-  { id: 'gemini-1.5-pro-001', name: 'Gemini 1.5 Pro 001', description: 'Specific 001 version' }
 ];
 
 interface VerificationResult {

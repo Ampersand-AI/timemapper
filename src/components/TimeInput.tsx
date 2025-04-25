@@ -7,6 +7,7 @@ import { toast } from '@/hooks/use-toast';
 import VoiceInputService from '@/services/VoiceInput';
 import { parseTimeQuery } from '@/services/ChatParser';
 import LlamaService from '@/services/LlamaService';
+import GeminiService from '@/services/GeminiService';
 
 interface TimeInputProps {
   onQuerySubmit: (query: string) => void;
@@ -55,14 +56,32 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     setIsValidating(true);
 
     try {
-      const result = LlamaService.hasApiKey() 
-        ? await LlamaService.verifyTimeQuery(query)
-        : { isValid: parseTimeQuery(query).isValid };
+      // First try with basic validation as it's faster
+      const parsedQuery = parseTimeQuery(query);
       
-      if (!result.isValid && LlamaService.hasApiKey()) {
+      if (parsedQuery.isValid) {
+        // If basic validation passes, just submit the query
+        onQuerySubmit(query);
+        setQuery('');
+        setIsValidating(false);
+        return;
+      }
+      
+      // Try with AI if basic validation fails
+      if (GeminiService.hasApiKey()) {
+        const result = await GeminiService.verifyTimeQuery(query);
+        
+        if (result.isValid) {
+          // Pass the query to parent component
+          onQuerySubmit(query);
+          setQuery('');
+          setIsValidating(false);
+          return;
+        }
+        
         // Let's try once more by reformulating as a time query
         const enhancedQuery = `What time is it in ${query}?`;
-        const enhancedResult = await LlamaService.verifyTimeQuery(enhancedQuery);
+        const enhancedResult = await GeminiService.verifyTimeQuery(enhancedQuery);
         
         if (enhancedResult.isValid) {
           // Pass the enhanced query to parent component
@@ -71,22 +90,39 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
           setIsValidating(false);
           return;
         }
-
-        toast({
-          title: "Invalid Query",
-          description: result.suggestions || "Please specify a city, country or timezone",
-          variant: "destructive",
-        });
-        setIsValidating(false);
-        return;
       }
       
-      // Pass the query to parent component
-      onQuerySubmit(query);
-      setQuery('');
+      // Try with Llama if Gemini fails
+      if (LlamaService.hasApiKey()) {
+        const result = await LlamaService.verifyTimeQuery(query);
+        
+        if (result.isValid) {
+          onQuerySubmit(query);
+          setQuery('');
+          setIsValidating(false);
+          return;
+        }
+        
+        const enhancedQuery = `What time is it in ${query}?`;
+        const enhancedResult = await LlamaService.verifyTimeQuery(enhancedQuery);
+        
+        if (enhancedResult.isValid) {
+          onQuerySubmit(enhancedQuery);
+          setQuery('');
+          setIsValidating(false);
+          return;
+        }
+      }
+      
+      // All validation attempts failed
+      toast({
+        title: "Invalid Query",
+        description: "Please specify a location or timezone. For example: 'New York', 'Tokyo', or '3pm EST in Berlin'",
+        variant: "destructive",
+      });
     } catch (error) {
       console.error('Error validating query:', error);
-      // Fallback to basic validation
+      // Try one last attempt with basic validation
       const parsedQuery = parseTimeQuery(query);
       if (parsedQuery.isValid) {
         onQuerySubmit(query);
@@ -144,22 +180,42 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             }
             
             // Only use AI validation if basic validation fails
-            if (LlamaService.hasApiKey()) {
+            if (GeminiService.hasApiKey() || LlamaService.hasApiKey()) {
               try {
                 setIsValidating(true);
-                const result = await LlamaService.verifyTimeQuery(transcript);
                 
-                if (result.isValid) {
-                  // Auto-submit if query is valid
-                  onQuerySubmit(transcript);
-                  setQuery('');
-                } else {
-                  toast({
-                    title: "Invalid Query",
-                    description: result.suggestions || "Please try again with a clearer query",
-                    variant: "destructive",
-                  });
+                // Try with Gemini first if available
+                if (GeminiService.hasApiKey()) {
+                  const result = await GeminiService.verifyTimeQuery(transcript);
+                  
+                  if (result.isValid) {
+                    // Auto-submit if query is valid
+                    onQuerySubmit(transcript);
+                    setQuery('');
+                    setIsValidating(false);
+                    return;
+                  }
                 }
+                
+                // Try with Llama if Gemini fails or isn't available
+                if (LlamaService.hasApiKey()) {
+                  const result = await LlamaService.verifyTimeQuery(transcript);
+                  
+                  if (result.isValid) {
+                    // Auto-submit if query is valid
+                    onQuerySubmit(transcript);
+                    setQuery('');
+                    setIsValidating(false);
+                    return;
+                  }
+                }
+                
+                toast({
+                  title: "Invalid Query",
+                  description: "Please try again with a clearer query",
+                  variant: "destructive",
+                });
+                
               } catch (error) {
                 console.error('Error validating voice query:', error);
                 // Still try with basic validation as fallback
