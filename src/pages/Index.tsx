@@ -3,6 +3,7 @@ import TimeInput from '@/components/TimeInput';
 import TimeTiles, { TimeZoneInfo } from '@/components/TimeTiles';
 import TimeGapGraph from '@/components/TimeGapGraph';
 import ContextPanel from '@/components/ContextPanel';
+import FavoriteTimezones from '@/components/FavoriteTimezones';
 import { parseTimeQuery } from '@/services/ChatParser';
 import {
   findTimeZone,
@@ -16,9 +17,11 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { toast } from '@/hooks/use-toast';
 import SettingsButton from '@/components/SettingsButton';
 import OpenAIService from '@/services/OpenAIService';
+import { useSettings } from '@/contexts/SettingsContext';
+import SettingsPanel from '@/components/SettingsPanel';
 
 const Index: React.FC = () => {
-  const [timeZones, setTimeZones] = useState<TimeZoneInfo[]>([]);
+  const [timeZoneCards, setTimeZoneCards] = useState<TimeZoneInfo[]>([]);
   const [showGraph, setShowGraph] = useState(false);
   const [showContext, setShowContext] = useState(false);
   const [fromZoneId, setFromZoneId] = useState('');
@@ -26,10 +29,12 @@ const Index: React.FC = () => {
   const [scheduledTime, setScheduledTime] = useState(new Date());
   const [userTimeZone, setUserTimeZone] = useState('');
   const [isDetectingLocation, setIsDetectingLocation] = useState(true);
+  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
+  const { settings } = useSettings();
   
   // Handle timezone changes from the cards
   const handleTimeZoneChange = (oldZoneId: string, newZoneId: string) => {
-    const updatedTimeZones = timeZones.map(zone => {
+    const updatedTimeZones = timeZoneCards.map(zone => {
       if (zone.id === oldZoneId) {
         const newZone = findTimeZone(newZoneId);
         if (newZone) {
@@ -57,7 +62,7 @@ const Index: React.FC = () => {
       return zone;
     });
     
-    setTimeZones(updatedTimeZones);
+    setTimeZoneCards(updatedTimeZones);
     
     // Update the analysis and context if they're already showing
     if (showGraph && showContext) {
@@ -83,85 +88,178 @@ const Index: React.FC = () => {
     }
   };
   
+  // Handle selecting a favorite timezone
+  const handleFavoriteSelect = (timezoneId: string) => {
+    const targetZone = findTimeZone(timezoneId);
+    if (!targetZone) return;
+    
+    if (timeZoneCards.length === 0) {
+      // If no cards, create one with the selected timezone
+      const currentTime = getCurrentTimeInZone(timezoneId);
+      setTimeZoneCards([{
+        id: targetZone.id,
+        name: targetZone.name,
+        offset: targetZone.offset,
+        abbreviation: targetZone.abbreviation,
+        time: currentTime,
+        isSource: true
+      }]);
+      setFromZoneId(targetZone.id);
+      setUserTimeZone(targetZone.id);
+    } else if (timeZoneCards.length === 1) {
+      // If one card exists, add the selected timezone as second card
+      const sourceZone = timeZoneCards[0];
+      const result = convertTime(
+        getCurrentTimeInZone(sourceZone.id),
+        sourceZone.id,
+        targetZone.id
+      );
+      
+      setTimeZoneCards([
+        sourceZone,
+        {
+          id: targetZone.id,
+          name: targetZone.name,
+          offset: targetZone.offset,
+          abbreviation: targetZone.abbreviation,
+          time: result.toTime,
+          isSource: false
+        }
+      ]);
+      
+      setToZoneId(targetZone.id);
+      setShowGraph(true);
+      setShowContext(true);
+    } else {
+      // If two cards already exist, update the non-source card
+      const sourceZone = timeZoneCards.find(z => z.isSource);
+      if (!sourceZone) return;
+      
+      const result = convertTime(
+        getCurrentTimeInZone(sourceZone.id),
+        sourceZone.id,
+        targetZone.id
+      );
+      
+      const updatedCards = timeZoneCards.map(zone => {
+        if (!zone.isSource) {
+          return {
+            id: targetZone.id,
+            name: targetZone.name,
+            offset: targetZone.offset,
+            abbreviation: targetZone.abbreviation,
+            time: result.toTime,
+            isSource: false
+          };
+        }
+        return zone;
+      });
+      
+      setTimeZoneCards(updatedCards);
+      setToZoneId(targetZone.id);
+      setShowGraph(true);
+      setShowContext(true);
+    }
+    
+    toast({
+      title: "Timezone Selected",
+      description: `Showing time for ${targetZone.name}`
+    });
+  };
+  
   // Auto-detect user's timezone on component mount
   useEffect(() => {
     async function detectUserLocation() {
       setIsDetectingLocation(true);
       try {
-        // Try to get user's location first
-        const coords = await getUserGeolocation();
+        // Try multiple methods to detect the timezone reliably
+        let detectedTimezone: string | null = null;
         
-        // Get timezone directly from the browser - most reliable source
-        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        console.log("Browser detected timezone:", browserTimezone);
+        // Method 1: Try to get timezone from browser's Intl API (most reliable)
+        try {
+          detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          console.log("Browser detected timezone:", detectedTimezone);
+        } catch (browserError) {
+          console.warn("Browser timezone detection failed:", browserError);
+        }
         
-        let detectedTimezone = browserTimezone;
-        
-        // Only use coordinates-based detection as fallback or confirmation
-        if (coords && coords.latitude && coords.longitude) {
+        // Method 2: Try to get user's location and convert to timezone
+        if (!detectedTimezone) {
           try {
-            const geoTimezone = await getTimezoneFromCoordinates(coords.latitude, coords.longitude);
-            // Use geo-based timezone if browser detection failed
-            if (!detectedTimezone && geoTimezone) {
-              detectedTimezone = geoTimezone;
+            const coords = await getUserGeolocation();
+            if (coords && coords.latitude && coords.longitude) {
+              detectedTimezone = await getTimezoneFromCoordinates(coords.latitude, coords.longitude);
+              console.log("Geo-based timezone:", detectedTimezone);
             }
-            console.log("Geo-based timezone:", geoTimezone);
           } catch (geoError) {
             console.warn("Geo-based timezone detection failed:", geoError);
           }
         }
         
+        // Find the timezone in our database
+        let detectedZone = null;
         if (detectedTimezone) {
-          // Find the timezone in our list
-          let detectedZone = timeZones.find(tz => tz.id === detectedTimezone);
+          // Direct match
+          detectedZone = timeZones.find(tz => tz.id === detectedTimezone);
           
-          if (!detectedZone) {
-            // Try to find by matching parts of the timezone ID
+          // Try to match by city/country if direct match fails
+          if (!detectedZone && detectedTimezone) {
             const parts = detectedTimezone.split('/');
             if (parts.length > 1) {
               const cityPart = parts[parts.length - 1].replace(/_/g, ' ').toLowerCase();
-              const continentPart = parts[0].toLowerCase();
               
-              detectedZone = timeZones.find(tz => {
-                const tzParts = tz.id.toLowerCase().split('/');
-                return tzParts.length > 1 && 
-                  tzParts[0] === continentPart &&
-                  tzParts[tzParts.length - 1].replace(/_/g, ' ').includes(cityPart);
-              });
-            }
-            
-            // If still not found, fall back to best offset match
-            if (!detectedZone) {
-              const localOffset = new Date().getTimezoneOffset();
-              const offsetMinutes = -localOffset; // Convert to minutes, invert sign
-              
-              // Find timezone with closest offset
-              let closestZone = timeZones[0];
-              let minDifference = Number.MAX_SAFE_INTEGER;
-              
-              timeZones.forEach(tz => {
-                const tzOffsetStr = tz.offset;
-                const tzHours = parseInt(tzOffsetStr.slice(1, 3), 10);
-                const tzMinutes = parseInt(tzOffsetStr.slice(4, 6), 10);
-                const tzTotalMinutes = (tzOffsetStr.startsWith('-') ? -1 : 1) * (tzHours * 60 + tzMinutes);
-                
-                const difference = Math.abs(tzTotalMinutes - offsetMinutes);
-                if (difference < minDifference) {
-                  minDifference = difference;
-                  closestZone = tz;
-                }
-              });
-              
-              detectedZone = closestZone;
-              console.log("Used offset-based timezone detection:", closestZone.id);
+              // Try to find by city name
+              detectedZone = timeZones.find(tz => 
+                tz.name.toLowerCase() === cityPart || 
+                (tz.synonyms && tz.synonyms.includes(cityPart))
+              );
             }
           }
+        }
+        
+        // If still not found, use offset-based fallback
+        if (!detectedZone) {
+          const localOffset = new Date().getTimezoneOffset();
+          const offsetMinutes = -localOffset; // Convert to minutes, invert sign
           
+          // Find timezone with closest offset
+          const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
+          const offsetMins = Math.abs(offsetMinutes) % 60;
+          const offsetSign = offsetMinutes >= 0 ? '+' : '-';
+          const offsetString = `${offsetSign}${offsetHours.toString().padStart(2, '0')}:${offsetMins.toString().padStart(2, '0')}`;
+          
+          detectedZone = timeZones.find(tz => tz.offset === offsetString);
+          
+          // If still not found, find closest
+          if (!detectedZone) {
+            let closestZone = timeZones[0];
+            let minDifference = Number.MAX_SAFE_INTEGER;
+            
+            timeZones.forEach(tz => {
+              const tzOffsetStr = tz.offset;
+              const tzHours = parseInt(tzOffsetStr.slice(1, 3), 10);
+              const tzMinutes = parseInt(tzOffsetStr.slice(4, 6), 10);
+              const tzTotalMinutes = (tzOffsetStr.startsWith('-') ? -1 : 1) * (tzHours * 60 + tzMinutes);
+              
+              const difference = Math.abs(tzTotalMinutes - offsetMinutes);
+              if (difference < minDifference) {
+                minDifference = difference;
+                closestZone = tz;
+              }
+            });
+            
+            detectedZone = closestZone;
+            console.log("Used offset-based timezone detection:", closestZone.id);
+          }
+        }
+        
+        // Apply the detected timezone
+        if (detectedZone) {
           setUserTimeZone(detectedZone.id);
           
           // Set initial timezone display with current time
           const now = getCurrentTimeInZone(detectedZone.id);
-          setTimeZones([{
+          setTimeZoneCards([{
             id: detectedZone.id,
             name: detectedZone.name,
             offset: detectedZone.offset,
@@ -183,7 +281,7 @@ const Index: React.FC = () => {
         const defaultZone = findTimeZone('America/New_York');
         if (defaultZone) {
           setUserTimeZone(defaultZone.id);
-          setTimeZones([{
+          setTimeZoneCards([{
             id: defaultZone.id,
             name: defaultZone.name,
             offset: defaultZone.offset,
@@ -210,7 +308,7 @@ const Index: React.FC = () => {
       setShowContext(false);
       
       // Keep track of user's timezone card
-      const userTimeZoneCard = timeZones.find(tz => tz.isSource);
+      const userTimeZoneCard = timeZoneCards.find(tz => tz.isSource);
       
       // Try to use OpenAI for enhanced query parsing if available
       if (OpenAIService.hasApiKey()) {
@@ -363,7 +461,7 @@ const Index: React.FC = () => {
     };
     
     // Update the timezones - always limit to two time windows
-    setTimeZones([sourceTimeZone, targetTimeZone]);
+    setTimeZoneCards([sourceTimeZone, targetTimeZone]);
     
     // Set state for graph and context panel
     setFromZoneId(fromZone.id);
@@ -381,7 +479,7 @@ const Index: React.FC = () => {
 
   const displaySingleTimezone = (zone: any, time: Date) => {
     // Just display the requested timezone
-    setTimeZones([{
+    setTimeZoneCards([{
       id: zone.id,
       name: zone.name,
       offset: zone.offset,
@@ -401,29 +499,45 @@ const Index: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neo-background text-white">
+    <div className={`min-h-screen ${settings.theme === 'dark' ? 'bg-neo-background text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-4xl mx-auto p-6 relative">
         {/* Settings Button */}
-        <SettingsButton />
+        <div className="absolute top-4 right-4 z-10">
+          <Button 
+            onClick={() => setIsSettingsPanelOpen(true)}
+            variant="ghost" 
+            size="icon"
+            className="rounded-full neo-raised"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+        </div>
         
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gradient-teal mb-2">TimeMapper 24</h1>
-          <p className="text-gray-400">
+          <p className={`${settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
             Convert times across multiple zones with weather and local context
           </p>
         </div>
+
+        {/* Favorites Section */}
+        {settings.favoriteTimezones.length > 0 && (
+          <FavoriteTimezones onSelectTimezone={handleFavoriteSelect} />
+        )}
         
-        <div className="neo-raised p-6 mb-6">
+        <div className={`neo-raised p-6 mb-6 ${settings.theme === 'dark' ? '' : 'bg-white shadow-md'}`}>
           <TimeInput onQuerySubmit={handleQuerySubmit} />
         </div>
         
         {isDetectingLocation ? (
           <div className="text-center py-10">
-            <p className="text-gray-300">Processing your request...</p>
+            <p className={`${settings.theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+              Processing your request...
+            </p>
           </div>
         ) : (
           <TimeTiles 
-            timeZones={timeZones} 
+            timeZones={timeZoneCards} 
             onTimeZoneChange={handleTimeZoneChange}
           />
         )}
@@ -444,11 +558,17 @@ const Index: React.FC = () => {
           />
         )}
         
-        <div className="text-center mt-10 text-xs text-gray-500">
-          TimeMapper 24 – Dark Neo Edition
+        <div className={`text-center mt-10 text-xs ${settings.theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+          TimeMapper 24 – {settings.theme === 'dark' ? 'Dark' : 'Light'} Edition
           {userTimeZone && <div>Your detected timezone: {userTimeZone}</div>}
         </div>
       </div>
+      
+      {/* Settings Panel */}
+      <SettingsPanel 
+        open={isSettingsPanelOpen}
+        onOpenChange={setIsSettingsPanelOpen}
+      />
     </div>
   );
 };

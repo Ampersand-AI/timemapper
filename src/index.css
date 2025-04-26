@@ -3,73 +3,102 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 172 63% 44%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 172 63% 44%;
-    --radius: 0.75rem;
-  }
+/* Add dark/light theme specific styles */
+:root {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
 }
 
-@layer base {
-  * {
-    @apply border-border selection:bg-neo-my-accent/10 selection:text-neo-my-accent;
-  }
-  
-  body {
-    @apply bg-neo-background text-white antialiased;
-    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
-  }
-
-  html {
-    @apply scroll-smooth;
-  }
+.light-theme {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
 }
 
-@layer utilities {
-  .scrollbar-none {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
-  }
-
-  .neo-inset {
-    @apply bg-neo-inset shadow-neo-inset border border-black/40 rounded-xl;
-  }
-  
+/* Neo Brutalist Styles */
+@layer components {
   .neo-raised {
-    @apply bg-neo-surface shadow-neo-raised border border-white/5 rounded-xl;
+    @apply rounded-lg border border-gray-700 bg-gradient-to-br from-[#1a1a1a] to-[#232323] shadow-[4px_4px_0px_0px_rgba(109,40,217)]
   }
   
-  .neo-glass {
-    @apply backdrop-blur-md bg-white/5 border border-white/10 rounded-xl;
+  .neo-inset {
+    @apply bg-gray-800 border border-gray-700 rounded-lg shadow-inner;
   }
-  
+
   .text-gradient-teal {
-    @apply bg-gradient-to-br from-neo-my-accent via-neo-my-accent/80 to-neo-my-accent/60 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-teal-400 to-cyan-300 bg-clip-text text-transparent;
   }
   
   .text-gradient-orange {
-    @apply bg-gradient-to-br from-neo-their-accent via-neo-their-accent/80 to-neo-their-accent/60 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent;
   }
+}
+
+/* Light theme modifications */
+.light-theme .neo-raised {
+  @apply from-white to-gray-50 border-gray-200 shadow-[4px_4px_0px_0px_rgba(109,40,217,0.6)];
+}
+
+.light-theme .neo-inset {
+  @apply bg-gray-100 border-gray-200;
+}
+
+/* Animation for pulse effect */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Some responsive adjustments */
+@media (max-width: 640px) {
+  .neo-raised {
+    @apply rounded-md shadow-[2px_2px_0px_0px_rgba(109,40,217)];
+  }
+}
+
+/* Style for the progress bar in voice recording */
+.progress-bar-recording {
+  height: 2px;
+  @apply bg-gradient-to-r from-teal-400 to-cyan-300;
 }
