@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { formatToTimeZone } from '@/services/TimeUtils';
 import { Button } from '@/components/ui/button';
-import { Settings, Heart, HeartOff } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { timeZones } from '@/services/TimeUtils';
 import GeminiService from '@/services/GeminiService';
 import { toast } from '@/hooks/use-toast';
-import { useSettings } from '@/contexts/SettingsContext';
 
 export interface TimeZoneInfo {
   id: string;
@@ -38,28 +37,10 @@ const TimeTile: React.FC<{
   const [searching, setSearching] = useState(false);
   const [filteredZones, setFilteredZones] = useState<typeof timeZones>([]);
   const isSource = !!timeZone.isSource;
-  const { settings, addFavoriteTimezone, removeFavoriteTimezone } = useSettings();
-  const isFavorite = settings.favoriteTimezones.includes(timeZone.id);
 
   const handleTimeZoneChange = (newZoneId: string) => {
     if (onTimeZoneChange) {
       onTimeZoneChange(timeZone.id, newZoneId);
-    }
-  };
-
-  const toggleFavorite = () => {
-    if (isFavorite) {
-      removeFavoriteTimezone(timeZone.id);
-      toast({
-        title: "Removed from favorites",
-        description: `${timeZone.name} has been removed from your favorites`,
-      });
-    } else {
-      addFavoriteTimezone(timeZone.id);
-      toast({
-        title: "Added to favorites",
-        description: `${timeZone.name} has been added to your favorites`,
-      });
     }
   };
 
@@ -247,15 +228,6 @@ const TimeTile: React.FC<{
             <h3 className={`text-lg font-medium ${isSource ? 'text-gradient-teal' : 'text-gradient-orange'}`}>
               {timeZone.name}
             </h3>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={toggleFavorite}
-              title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-            >
-              {isFavorite ? <HeartOff className="h-4 w-4 text-neo-my-accent" /> : <Heart className="h-4 w-4" />}
-            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -302,13 +274,11 @@ const TimeTile: React.FC<{
         <div className="flex flex-col items-center">
           <div className="flex items-baseline">
             <div className="text-7xl font-bold tracking-tight">
-              {formatToTimeZone(timeZone.time, timeZone.id, settings.timeFormat === '12h' ? 'h:mm' : 'HH:mm')}
+              {formatToTimeZone(timeZone.time, timeZone.id, 'h:mm')}
             </div>
-            {settings.timeFormat === '12h' && (
-              <div className="text-3xl ml-2 font-medium">
-                {formatToTimeZone(timeZone.time, timeZone.id, 'a')}
-              </div>
-            )}
+            <div className="text-3xl ml-2 font-medium">
+              {formatToTimeZone(timeZone.time, timeZone.id, 'a')}
+            </div>
           </div>
           
           <div className="mt-4 text-center">

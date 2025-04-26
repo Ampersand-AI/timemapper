@@ -8,8 +8,6 @@ import VoiceInputService from '@/services/VoiceInput';
 import { parseTimeQuery } from '@/services/ChatParser';
 import OpenAIService from '@/services/OpenAIService';
 import LlamaService from '@/services/LlamaService';
-import { useSettings } from '@/contexts/SettingsContext';
-import { Progress } from '@/components/ui/progress';
 
 interface TimeInputProps {
   onQuerySubmit: (query: string) => void;
@@ -30,11 +28,8 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
-  const [recordingProgress, setRecordingProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const [placeholder, setPlaceholder] = useState('Enter any city, state, country or timezone...');
-  const { settings } = useSettings();
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Focus input on mount
   useEffect(() => {
@@ -43,37 +38,20 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     }
   }, []);
 
-  // Auto-stop voice recording after configured seconds of silence
+  // Auto-stop voice recording after 5 seconds of silence
   useEffect(() => {
     let silenceTimer: NodeJS.Timeout | null = null;
     
     if (isListening) {
       silenceTimer = setTimeout(() => {
         stopVoiceInput();
-      }, settings.voiceInputDuration * 1000); // Convert seconds to milliseconds
-      
-      // Start progress bar
-      setRecordingProgress(0);
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-      
-      progressIntervalRef.current = setInterval(() => {
-        setRecordingProgress(prev => {
-          const newValue = prev + (100 / (settings.voiceInputDuration * 10));
-          return newValue > 100 ? 100 : newValue;
-        });
-      }, 100);
+      }, 5000); // Stop after 5 seconds of silence
     }
     
     return () => {
       if (silenceTimer) clearTimeout(silenceTimer);
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
     };
-  }, [isListening, settings.voiceInputDuration]);
+  }, [isListening]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,11 +135,6 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
     VoiceInputService.stopListening();
     setIsListening(false);
     setPlaceholder('Enter any city, state, country or timezone...');
-    setRecordingProgress(0);
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
   };
 
   const toggleVoiceInput = () => {
@@ -260,22 +233,12 @@ const TimeInput: React.FC<TimeInputProps> = ({ onQuerySubmit }) => {
             className="neo-inset px-4 py-3 h-12 bg-neo-inset text-white"
             disabled={isValidating}
           />
-          
-          {isListening && (
-            <div className="absolute -bottom-2 left-0 w-full px-1">
-              <Progress 
-                value={recordingProgress} 
-                className="h-1 bg-gray-700" 
-                indicatorClassName="bg-neo-my-accent" 
-              />
-            </div>
-          )}
         </div>
         
         <Button 
           type="button" 
           onClick={toggleVoiceInput}
-          className={`neo-raised p-3 ${isListening ? 'bg-neo-my-accent text-white animate-pulse' : ''}`}
+          className={`neo-raised p-3 ${isListening ? 'bg-neo-my-accent text-white' : ''}`}
           disabled={isValidating}
         >
           {isListening ? <MicOff size={20} /> : <Mic size={20} />}
