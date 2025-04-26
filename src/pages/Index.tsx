@@ -19,6 +19,8 @@ import SettingsButton from '@/components/SettingsButton';
 import OpenAIService from '@/services/OpenAIService';
 import { useSettings } from '@/contexts/SettingsContext';
 import SettingsPanel from '@/components/SettingsPanel';
+import { Button } from '@/components/ui/button';
+import { Settings } from 'lucide-react';
 
 const Index: React.FC = () => {
   const [timeZoneCards, setTimeZoneCards] = useState<TimeZoneInfo[]>([]);
